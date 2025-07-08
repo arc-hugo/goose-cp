@@ -1,6 +1,6 @@
-[submodule "wlplan"]
+[submodule "wlplan-cp"]
 	path = wlplan
-	url = https://github.com/DillonZChen/wlplan
+	url = https://github.com/arc-hugo/wlplan-cp
 [submodule "benchmarks"]
 	path = benchmarks
 	url = https://github.com/DillonZChen/goose-dataset.git

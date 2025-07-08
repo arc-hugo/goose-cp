@@ -41,7 +41,7 @@ def train(opts):
     # Collect colours
     with TimerContextManager("collecting colours"):
         feature_generator.collect(dataset.wlplan_dataset)
-    logging.info(f"n_colours_per_layer:")
+    logging.info("n_colours_per_layer:")
     for i, n_colours in enumerate(feature_generator.get_layer_to_n_colours()):
         logging.info(f"  {i}={n_colours}")
     if opts.collect_only:

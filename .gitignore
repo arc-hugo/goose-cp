@@ -1,4 +1,6 @@
+.vscode/
 planning/downward/src/search/ext/wlplan/include/
+cost_partition/
 
 plots/
 logs/
