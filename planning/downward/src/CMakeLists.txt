@@ -23,7 +23,10 @@
 #   -DCMAKE_BUILD_TYPE=type
 # to the cmake call.
 
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.20)
+
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 project(fast-downward
     DESCRIPTION "Fast Downward is a domain-independent classical planning system."
