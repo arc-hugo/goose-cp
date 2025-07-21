@@ -5,7 +5,8 @@ from tqdm import tqdm
 
 from learning.dataset.container.base_dataset import Dataset
 from learning.dataset.container.ranking_dataset import RankingDataset
-from wlplan.feature_generation import Features
+from learning.dataset.container.cost_partition_dataset import CostPartitionDataset
+from wlplan.feature_generation import Features, CostPartitionFeatures
 
 
 def embed_data(dataset: Dataset, feature_generator: Features, opts: Namespace):
@@ -23,6 +24,29 @@ def embed_data(dataset: Dataset, feature_generator: Features, opts: Namespace):
         raise ValueError(f"Unknown data pruning method: {opts.data_pruning}")
     return X, y, sample_weight
 
+
+def get_action_schemas_data(dataset: Dataset, feature_generator: Features):
+    assert isinstance(dataset, CostPartitionDataset)
+    assert isinstance(feature_generator, CostPartitionFeatures)
+
+    feature_generator: CostPartitionFeatures = feature_generator
+
+    for i, input in enumerate(feature_generator.actions_embed_dataset(dataset.wlplan_dataset)):
+        X = [[] for _ in dataset.domain.action_schemas]
+        y = [[] for _ in dataset.domain.action_schemas]
+        for action_name in input:
+            action_schema = get_action_schema_name(action_name)
+            for j in range(len(dataset.domain.action_schemas)):
+                if (dataset.domain.action_schemas[j].name == action_schema):
+                    X[j].append(np.array(input[action_name]))
+                    y[j].append(np.array(dataset.y[i][action_name]))
+                    break
+        
+        yield X, y
+
+
+def get_action_schema_name(name: str):
+    return name.split(" ")[0]
 
 def get_data_weighted(dataset: Dataset, feature_generator: Features, opts: Namespace):
     if opts.rank:

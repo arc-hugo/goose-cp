@@ -15,6 +15,7 @@ from .creator.classic_cost_to_go_dataset_creator import (
 from .creator.classic_ranking_dataset_creator import ClassicRankingDatasetFromPlans
 from .creator.numeric_cost_to_go_dataset_creator import NumericCostToGoDatasetFromPlans
 from .creator.numeric_ranking_dataset_creator import NumericRankingDatasetFromPlans
+from .creator.cost_partition_dataset_creator import CostPartitionDatasetCreator
 
 DOMAINS = {
     "blocksworld",
@@ -29,6 +30,9 @@ DOMAINS = {
     "transport",
 }
 
+COST_PARTITION_DOMAINS = {
+    "blocks"
+}
 
 def get_dataset(opts: Namespace, feature_generator: WLFeatures) -> Dataset:
     """State space datasets automatically remove WL-indistinguishable states with equivalent target values."""
@@ -50,6 +54,9 @@ def get_dataset(opts: Namespace, feature_generator: WLFeatures) -> Dataset:
 
     match (rank, data_generation, domain_is_numeric):
         ##### Classic datasets #####
+        case (False, "cost_partition", _):
+            del kwargs["facts"]
+            return CostPartitionDatasetCreator(**kwargs).get_dataset()
         case (False, "plan", False):
             return ClassicCostToGoDatasetFromPlans(**kwargs).get_dataset()
         case (False, "state-space", False):

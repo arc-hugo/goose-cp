@@ -1,19 +1,18 @@
 from abc import ABC, abstractmethod
 
 from wlplan.data import Dataset as WLPlanDataset
-from wlplan.data import ProblemStates
 from wlplan.planning import Domain
 
 
 class Dataset(ABC):
-    def __init__(self, wlplan_domain: Domain, data: list[ProblemStates]):
+    def __init__(self, wlplan_domain: Domain, wlplan_dataset: WLPlanDataset):
         self._domain = wlplan_domain
-        self._data = data
-        self._wlplan_dataset = WLPlanDataset(wlplan_domain, data)
+        self._wlplan_dataset = wlplan_dataset
 
     @property
-    def data(self) -> list[ProblemStates]:
-        return self._data
+    @abstractmethod
+    def data(self):
+        pass
 
     @property
     def domain(self) -> Domain:
@@ -28,5 +27,6 @@ class Dataset(ABC):
     def y(self):
         pass
 
+    @abstractmethod
     def __len__(self):
-        return len(self._data)
+        pass

@@ -9,7 +9,7 @@ def log_quartiles(array: np.array):
     q1 = np.percentile(array, 25)
     q2 = np.percentile(array, 50)
     q3 = np.percentile(array, 75)
-    logging.info(f"target (y) statistics:")
+    logging.info("target (y) statistics:")
     logging.info(f" min {min_val}")
     logging.info(f"  q1 {q1}")
     logging.info(f"  q2 {q2}")

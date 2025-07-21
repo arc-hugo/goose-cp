@@ -5,10 +5,9 @@ import pymimir
 import wlplan
 from learning.dataset.container.cost_to_go_dataset import CostToGoDataset
 from learning.dataset.creator.classic_dataset_creator import ClassicDatasetCreator
-from wlplan.data import Dataset as WLPlanDataset
-from wlplan.data import ProblemStates
+from wlplan.data import LiftedDataset, ProblemStates
 
-from .dataset_creator import MAX_EXPANSIONS_PER_PROBLEM, MAX_STATE_SPACE_DATA
+from .dataset_creator import MAX_EXPANSIONS_PER_PROBLEM, MAX_STATE_SPACE_DATA, ProblemType
 
 
 class ClassicCostToGoDatasetFromStateSpace(ClassicDatasetCreator):
@@ -21,7 +20,7 @@ class ClassicCostToGoDatasetFromStateSpace(ClassicDatasetCreator):
         y = []
         seen_x_y_pairs = set()
 
-        for problem_pddl in self._get_problem_iterator(plans_only=False):
+        for problem_pddl in self._get_problem_iterator(ProblemType.StateSpace):
             if len(seen_x_y_pairs) >= MAX_STATE_SPACE_DATA:
                 break
 
@@ -50,7 +49,7 @@ class ClassicCostToGoDatasetFromStateSpace(ClassicDatasetCreator):
                 wlplan_state = self._mimir_to_wlplan_state(state)
 
                 # check if WL repr of the state has been seen before
-                mini_dataset = WLPlanDataset(
+                mini_dataset = LiftedDataset(
                     domain=self.wlplan_domain,
                     data=[ProblemStates(problem=wlplan_problem, states=[wlplan_state])],
                 )
