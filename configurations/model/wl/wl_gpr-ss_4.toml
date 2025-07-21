@@ -3,3 +3,4 @@ features = 'wl'
 optimisation = 'gpr'
 iterations = 4
 data_generation = 'state-space'
+task = 'heuristic'

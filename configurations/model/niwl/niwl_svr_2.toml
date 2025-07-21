@@ -3,3 +3,4 @@ features = 'niwl'
 optimisation = 'svr'
 iterations = 2
 data_generation = 'plan'
+task = 'heuristic'

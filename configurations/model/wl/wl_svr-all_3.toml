@@ -3,3 +3,4 @@ features = 'wl'
 optimisation = 'svr'
 iterations = 3
 data_generation = 'all'
+task = 'heuristic'

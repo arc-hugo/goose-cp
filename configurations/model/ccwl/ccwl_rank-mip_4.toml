@@ -3,3 +3,4 @@ features = 'ccwl'
 optimisation = 'rank-mip'
 iterations = 4
 data_generation = 'plan'
+task = 'heuristic'

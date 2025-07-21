@@ -1,0 +1,7 @@
+graph_representation = 'cplg'
+features = 'wl'
+optimisation = 'sgdr'
+iterations = 2
+data_generation = 'cost_partition'
+data_pruning = 'none'
+task = 'cost_partitioning'

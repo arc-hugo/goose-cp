@@ -16,6 +16,13 @@ ITERATIONS = [1, 2, 3, 4]
 DATA_LABELS = ["plan", "state-space", "all"]
 WL_CONFIGURATIONS = itertools.product(OPTIMISERS, ITERATIONS, DATA_LABELS)
 
+# WL-CP
+OPTIMISERS = ["sgdr"]
+ITERATIONS = [1, 2, 3, 4]
+DATA_LABELS = ["cost_partition"]
+WL_CP_CONFIGURATIONS = itertools.product(OPTIMISERS, ITERATIONS, DATA_LABELS)
+
+
 # 2-LWL
 OPTIMISERS = ["svr", "rank-lp"]
 ITERATIONS = [2]
@@ -43,7 +50,7 @@ NIWL_CONFIGURATIONS = itertools.product(OPTIMISERS, ITERATIONS, DATA_LABELS)
 
 def main():
     for description, configurations in [
-        ("wl", WL_CONFIGURATIONS),
+        ("wl", itertools.chain(WL_CONFIGURATIONS, WL_CP_CONFIGURATIONS)),
         ("lwl2", LWL2_CONFIGURATIONS),
         ("ccwl", CCWL_CONFIGURATIONS),
         ("iwl", IWL_CONFIGURATIONS),
@@ -58,6 +65,8 @@ def write_configurations(features, optimisation, iterations, data_generation):
         file = f"{optimisation}-ss_{iterations}.toml"
     elif data_generation == "all":
         file = f"{optimisation}-all_{iterations}.toml"
+    elif data_generation == "cost_partition":
+        file = f"{optimisation}-cp_{iterations}.toml"
     else:
         file = f"{optimisation}_{iterations}.toml"
     file = f"{features}_{file}"
@@ -68,8 +77,19 @@ def write_configurations(features, optimisation, iterations, data_generation):
         return
     if features == "ccwl":
         graph_representation = "nilg"
+    elif data_generation == "cost_partition":
+        graph_representation = "cplg"
     else:
         graph_representation = "ilg"
+    if graph_representation == "cplg" and (features != "wl" or rank == "true"):
+        return
+    elif graph_representation == "cplg":
+        task = "cost_partitioning"
+        data_pruning = "none"
+    else:
+        task = "heuristic"
+        data_pruning = None
+
     print(file)
     with open(file, "w") as f:
         f.write(f"graph_representation = '{graph_representation}'\n")
@@ -78,6 +98,9 @@ def write_configurations(features, optimisation, iterations, data_generation):
         f.write(f"iterations = {iterations}\n")
         # f.write(f"rank = {rank}\n")
         f.write(f"data_generation = '{data_generation}'\n")
+        if data_pruning is not None:
+            f.write(f"data_pruning = '{data_pruning}'\n")
+        f.write(f"task = '{task}'\n")
 
 
 if __name__ == "__main__":

@@ -3,3 +3,4 @@ features = 'wl'
 optimisation = 'rank-lp'
 iterations = 1
 data_generation = 'all'
+task = 'heuristic'

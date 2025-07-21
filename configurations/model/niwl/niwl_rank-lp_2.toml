@@ -3,3 +3,4 @@ features = 'niwl'
 optimisation = 'rank-lp'
 iterations = 2
 data_generation = 'plan'
+task = 'heuristic'

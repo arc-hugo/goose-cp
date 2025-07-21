@@ -3,3 +3,4 @@ features = 'ccwl'
 optimisation = 'svr'
 iterations = 1
 data_generation = 'plan'
+task = 'heuristic'
