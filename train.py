@@ -117,18 +117,16 @@ def train(opts):
         schema_predictors = [get_cost_partition_predictor(opts.optimisation) for _ in range(num_action_schemas)]
         
         count_states = 0
-        with TimerContextManager(f"training predictors for schemas ({action_schema_names})"):
+        with TimerContextManager(f"training predictors for schemas {action_schema_names}"):
             for X, y in get_action_schemas_data(dataset, feature_generator):
                 count_states += 1
                 for schema_id in range(num_action_schemas):
                     name = action_schema_names[schema_id]
 
                     X_schema, y_schema = np.array(X[schema_id], dtype=object), np.array(y[schema_id], dtype=object)
-                    groups = [i for i in range(len(X_schema))]
 
-                    schema_predictors[schema_id].partial_fit(X_schema, y_schema, groups)
-
-                    # schema_predictor.evaluate()
+                    for X_i, y_i in zip(X_schema, y_schema):
+                        schema_predictors[schema_id].partial_fit(X_i, y_i)
         
         with TimerContextManager("testing predictor on first data"):
             for X, y in get_action_schemas_data(dataset, feature_generator):

@@ -1,21 +1,16 @@
-import logging
-
 import numpy as np
 
-from sklearn.metrics import mean_squared_error
 from sklearn.linear_model import SGDRegressor as SGDR
 from scipy.special import softmax
 
-from .mse_minimiser import MSESoftmaxMinimiser
+from .base_predictor import BaseCPPredictor
 
-class SGDRegressorSoftmax(MSESoftmaxMinimiser):
+class SGDRegressorSoftmax(BaseCPPredictor):
     def __init__(self, alpha=0.0001):
         super().__init__()
         self._model = SGDR(alpha=alpha, tol=1e-7, fit_intercept=False)
         self.alpha = alpha
         self._fitted = False
-        self._X = []
-        self._y = []
 
     def _partial_fit_impl(self, X, y):
         if self._fitted:
@@ -46,8 +41,6 @@ class SGDRegressorSoftmax(MSESoftmaxMinimiser):
 
         # Update weights and train data
         self._weights = self._model.coef_
-        # self._X.append(X)
-        # self._y.append(y)
         self._fitted = True
     
     def predict(self, X, groups=None):
