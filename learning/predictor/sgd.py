@@ -1,68 +1,93 @@
+import logging
 import numpy as np
+import torch
 
-from sklearn.linear_model import SGDRegressor as SGDR
-from scipy.special import softmax
+from torch import nn
+from torch.utils.data import DataLoader
+import torch.nn.functional as F
+
+from torchmetrics.functional import r2_score
 
 from .base_predictor import BaseCPPredictor
 
+class LinearSoftmaxModel(nn.Module):
+    def __init__(self, input_dim, hidden_dim=128):
+        super(LinearSoftmaxModel, self).__init__()
+        self.linear1 = nn.Linear(input_dim, 1, dtype=torch.float64)
+        
+    def forward(self, x):
+        # x shape: (batch_size, seq_length, input_dim)
+        
+        # Appliquer les couches linéaires position par position
+        x = self.linear1(x)
+        
+        # Supprimer la dernière dimension
+        x = x.squeeze(-1)  # Shape: (batch_size, seq_length)
+        
+        # Appliquer softmax sur la dimension de la séquence
+        x = F.softmax(x, dim=1)
+        
+        return x
+
 class SGDRegressorSoftmax(BaseCPPredictor):
-    def __init__(self, alpha=0.0001):
-        super().__init__()
-        self._model = SGDR(alpha=alpha, tol=1e-7, fit_intercept=False)
-        self.alpha = alpha
+    def __init__(self, input_dim: int, criterion=nn.BCELoss(),
+                 optimizer=torch.optim.SGD, epoch=10, alpha=1e-3):
+        super().__init__(epoch=epoch)
+        self._model = LinearSoftmaxModel(input_dim)
         self._fitted = False
 
-    def _partial_fit_impl(self, X, y):
-        if self._fitted:
-            y_pred = self._model.predict(X)
-        else:
-            y_pred = np.random.randn(len(X))
+        self.criterion = criterion
+        self.optimizer = optimizer(self._model.parameters(), alpha)
+
+    def _train_impl(self, data: DataLoader):
+        self._model.train()
+
+        for batch, (X, y) in enumerate(data):
+            # Compute prediction and loss
+            X, y = X[0], y[0]
+            pred = self._model(X)
+            loss = self.criterion(pred, y)
+
+            # Backpropagation
+            loss.backward()
+            self.optimizer.step()
+            self.optimizer.zero_grad()
+
+            if batch % 100 == 0:
+                loss = loss.item()
+                print(f"loss: {loss:>7f}")
         
-        # Softmax transform
-        y_softmax = softmax(y_pred)
-
-        # MSE gradient
-        error = y_softmax - y
-        jacobian = np.diag(y_softmax) - np.outer(y_softmax, y_softmax)
-        gradient = 2 * jacobian @ error
-
-        # Compute new target
-        y_target = y_pred - self.alpha * gradient
-
-        # if not self._fitted:
-        #     mse_loss = mean_squared_error(y, y_softmax)
-        #     print(y)
-        #     print(y_softmax)
-        #     print(np.sum(y_softmax))
-        #     logging.info(f"{mse_loss=}")
-        # exit()
-        # Apply partial fit
-        self._model.partial_fit(X, y_target)
-
-        # Update weights and train data
-        self._weights = self._model.coef_
         self._fitted = True
     
-    def predict(self, X, groups=None):
+    def _evaluate_impl(self, data: DataLoader):
+        self._model.eval()
+
+        test_loss, num_batches, score = 0, 0, 0
+    
+        with torch.no_grad():
+            for X, y in data:
+                X, y = X[0], y[0]
+                pred = self._model(X)
+                pred = pred.squeeze()
+                y = y.squeeze()
+
+
+                test_loss += self.criterion(pred, y).item()
+                score += r2_score(pred, y)
+                num_batches += 1
+
+        score /= num_batches
+        test_loss /= num_batches
+        logging.info(f"Test Error: Average R2 score: {score}, Avg loss: {test_loss:>8f}")
+
+    def _save_weights(self):
+        print(self._model.state_dict())
+
+    def predict(self, X):
         if not self._fitted:
             raise RuntimeError("Model has not been trained yet. Call `partial_fit` to train the model.")
-        if groups is None:
-            groups = np.zeros(len(X))
-        
-        raw_pred = self._model.predict(X)
 
-        return self._apply_group_softmax(raw_pred, groups)
-
-    def _apply_group_softmax(self, raw_pred, groups):
-        unique_groups = np.unique(groups)
-        transformed = np.zeros_like(raw_pred)
-        
-        for group_id in unique_groups:
-            mask = groups == group_id
-            if np.sum(mask) > 0:
-                transformed[mask] = softmax(raw_pred[mask])
-                
-        return transformed
+        return self._model.forward(X)
     
     def set_weights(self, weights):
         self._weights = np.array(weights)

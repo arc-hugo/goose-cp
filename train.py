@@ -3,6 +3,7 @@
 import logging
 
 import toml
+import torch
 import numpy as np
 
 from sklearn.metrics import mean_squared_error
@@ -114,45 +115,40 @@ def train(opts):
         num_action_schemas = len(domain.action_schemas)
         action_schema_names = [a.name for a in domain.action_schemas]
 
-        schema_predictors = [get_cost_partition_predictor(opts.optimisation) for _ in range(num_action_schemas)]
+        schema_predictors = [get_cost_partition_predictor(opts.optimisation, feature_generator.get_n_features() + feature_generator.get_iterations()) 
+                             for _ in range(num_action_schemas)]
+
+        train_datasets = get_action_schemas_data(dataset, feature_generator)
         
-        count_states = 0
         with TimerContextManager(f"training predictors for schemas {action_schema_names}"):
-            for X, y in get_action_schemas_data(dataset, feature_generator):
-                count_states += 1
-                for schema_id in range(num_action_schemas):
-                    name = action_schema_names[schema_id]
-
-                    X_schema, y_schema = np.array(X[schema_id], dtype=object), np.array(y[schema_id], dtype=object)
-
-                    for X_i, y_i in zip(X_schema, y_schema):
-                        schema_predictors[schema_id].partial_fit(X_i, y_i)
+            for i in range(len(schema_predictors)):
+                logging.info(f"Train for {action_schema_names[i]}")
+                data_loader = torch.utils.data.DataLoader(train_datasets[i], num_workers=0)
+                schema_predictors[i].fit(data_loader)
         
-        with TimerContextManager("testing predictor on first data"):
-            for X, y in get_action_schemas_data(dataset, feature_generator):
-                for schema_id in range(num_action_schemas):
-                    name = action_schema_names[schema_id]
-                    print("Schema", name)
+        # with TimerContextManager("testing predictor on first data"):
+        #     for X, y in get_action_schemas_data(dataset, feature_generator):
+        #         for schema_id in range(num_action_schemas):
+        #             name = action_schema_names[schema_id]
+        #             print("Schema", name)
 
-                    X_schema, y_schema = np.array(X[schema_id], dtype=object), np.array(y[schema_id], dtype=object)
+        #             X_schema, y_schema = np.array(X[schema_id], dtype=object), np.array(y[schema_id], dtype=object)
 
-                    hit_count = 0
-                    for i in range(len(X_schema)):
-                        y_pred = schema_predictors[schema_id].predict(X_schema[i])
+        #             hit_count = 0
+        #             for i in range(len(X_schema)):
+        #                 y_pred = schema_predictors[schema_id].predict(X_schema[i])
 
-                        print(y_pred)
-                        print(y_schema[i])
-                        mse = mean_squared_error(y_schema[i], y_pred)
-                        print(mse)
-                        if mse == 0:
-                            hit_count += 1
-                            print("HIT!")
+        #                 print(y_pred)
+        #                 print(y_schema[i])
+        #                 mse = mean_squared_error(y_schema[i], y_pred)
+        #                 print(mse)
+        #                 if mse == 0:
+        #                     hit_count += 1
+        #                     print("HIT!")
                     
-                    print(f"Accurrate costs {hit_count}/{len(X_schema)}")
+        #             print(f"Accurrate costs {hit_count}/{len(X_schema)}")
                 
-                break
-
-        logging.info(f"n_states_in_training: {count_states}")
+        #         break
 
         if opts.save_file:
             with TimerContextManager("saving model"):

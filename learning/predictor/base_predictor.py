@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 
+from torch.utils.data import DataLoader
+
 from util.custom_decorators import abstract_class_attributes
 from util.timer import TimerContextManager
 
@@ -50,38 +52,38 @@ class BasePredictor(ABC):
         return ret
 
 class BaseCPPredictor(ABC):
-    def __init__(self) -> None:
+    def __init__(self, epoch = 1) -> None:
         super().__init__()
         self._weights = None
+        self.epochs = epoch
 
-    def partial_fit(self, X, y):
-        if len(X.shape) == 3 and len(y.shape) == 2:
-            X_group = X.reshape((X.shape[0] * X.shape[1], X.shape[2]))
-            y_group = y.reshape((y.shape[0] * y.shape[1]))
-        elif len(X.shape) > 3:
-            raise RuntimeError("Cannot handle data with more than 3dim.")
-        else:
-            X_group, y_group = X, y
-        self._partial_fit_impl(X_group, y_group)
-            
+    def fit(self, data: DataLoader):
+
+        for t in range(self.epochs):
+            print(f"Epoch {t+1}\n-------------------------------")
+            self._train_impl(data)
+        
+        self._evaluate_impl(data)
+        self._save_weights()
+
         return self
 
-    def evaluate(self):
-        if self._weights is None:
-            raise RuntimeError("Model has not been trained yet. Call `partial_fit` to train the model.")
-        self._evaluate_impl()
-
     @abstractmethod
-    def _partial_fit_impl(self, X, y):
+    def _train_impl(self, data: DataLoader):
         pass
 
     @abstractmethod
-    def predict(self, X, groups=None):
+    def predict(self, X):
         pass
 
     @abstractmethod
-    def _evaluate_impl(self):
+    def _evaluate_impl(self, data: DataLoader):
         """Evaluation of training data after calling fit"""
+        pass
+
+    @abstractmethod
+    def _save_weights(self):
+        """Save weights after fit"""
         pass
 
     def get_weights(self) -> list:

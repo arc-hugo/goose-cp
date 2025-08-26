@@ -2,11 +2,32 @@ from argparse import Namespace
 
 import numpy as np
 from tqdm import tqdm
+from torch.utils.data import IterableDataset, get_worker_info
 
 from learning.dataset.container.base_dataset import Dataset
 from learning.dataset.container.ranking_dataset import RankingDataset
 from learning.dataset.container.cost_partition_dataset import CostPartitionDataset
 from wlplan.feature_generation import Features, CostPartitionFeatures
+
+class ActionSchemaIterableDataset(IterableDataset):
+    def __init__(self, feature_generator: CostPartitionFeatures, dataset: Dataset, action_schema: str):
+        super().__init__()
+        self.fg = feature_generator
+        self.data = dataset
+        self.action_schema = action_schema
+
+    def __iter__(self):
+        for i, input in enumerate(self.fg.actions_embed_dataset(self.data.wlplan_dataset)):
+            X = []
+            y = []
+            for action_name in input:
+                action_schema = get_action_schema_name(action_name)
+                if (action_schema == self.action_schema):
+                    X.append(np.array(input[action_name]))
+                    y.append(np.array(self.data.y[i][action_name]))
+                    break
+            
+            yield X, y
 
 
 def embed_data(dataset: Dataset, feature_generator: Features, opts: Namespace):
@@ -25,24 +46,13 @@ def embed_data(dataset: Dataset, feature_generator: Features, opts: Namespace):
     return X, y, sample_weight
 
 
-def get_action_schemas_data(dataset: Dataset, feature_generator: Features):
+def get_action_schemas_data(dataset: Dataset, feature_generator: Features) -> ActionSchemaIterableDataset:
     assert isinstance(dataset, CostPartitionDataset)
     assert isinstance(feature_generator, CostPartitionFeatures)
 
     feature_generator: CostPartitionFeatures = feature_generator
 
-    for i, input in enumerate(feature_generator.actions_embed_dataset(dataset.wlplan_dataset)):
-        X = [[] for _ in dataset.domain.action_schemas]
-        y = [[] for _ in dataset.domain.action_schemas]
-        for action_name in input:
-            action_schema = get_action_schema_name(action_name)
-            for j in range(len(dataset.domain.action_schemas)):
-                if (dataset.domain.action_schemas[j].name == action_schema):
-                    X[j].append(np.array(input[action_name]))
-                    y[j].append(np.array(dataset.y[i][action_name]))
-                    break
-        
-        yield X, y
+    return [ActionSchemaIterableDataset(feature_generator, dataset, action_schema.name) for action_schema in dataset.domain.action_schemas]
 
 
 def get_action_schema_name(name: str):
