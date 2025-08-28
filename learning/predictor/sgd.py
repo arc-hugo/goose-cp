@@ -64,7 +64,6 @@ class SGDRegressorSoftmax(BaseCPPredictor):
 
         for batch, (X, y) in enumerate(data):
             # Compute prediction and loss
-            X, y = X[0], y[0]
             pred = self._model(X)
             loss = self.criterion(pred, y)
 
@@ -86,14 +85,10 @@ class SGDRegressorSoftmax(BaseCPPredictor):
     
         with torch.no_grad():
             for X, y in data:
-                X, y = X[0], y[0]
                 pred = self._model(X)
-                pred = pred.squeeze()
-                y = y.squeeze()
-
 
                 test_loss += self.criterion(pred, y).item()
-                score += r2_score(pred, y)
+                score += r2_score(pred.squeeze(), y.squeeze())
                 num_batches += 1
 
         score /= num_batches

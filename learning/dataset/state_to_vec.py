@@ -33,16 +33,11 @@ class ActionSchemaIterableDataset(IterableDataset):
             if num_worker > 1:
                 if i < worker_start or i >= worker_end:
                     continue
-            X = []
-            y = []
+
             for action_name in input:
                 action_schema = get_action_schema_name(action_name)
                 if (action_schema == self.action_schema):
-                    X.append(np.array(input[action_name]))
-                    y.append(np.array(self.data.y[i][action_name]))
-                    break
-            
-            yield X, y
+                    yield np.array(input[action_name]), np.array(self.data.y[i][action_name])
 
 
 def embed_data(dataset: Dataset, feature_generator: Features, opts: Namespace):
