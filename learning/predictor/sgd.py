@@ -31,7 +31,7 @@ class LinearSoftmaxModel(nn.Module):
 
 class SGDRegressorSoftmax(BaseCPPredictor):
     def __init__(self, input_dim: int, criterion=nn.BCELoss(),
-                 optimizer=torch.optim.SGD, epoch=10, alpha=1e-3):
+                 optimizer=torch.optim.SGD, epoch=3, alpha=1e-3):
         super().__init__(epoch=epoch)
         self._model = LinearSoftmaxModel(input_dim)
         self._fitted = False
