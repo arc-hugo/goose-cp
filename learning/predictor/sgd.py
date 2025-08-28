@@ -101,7 +101,7 @@ class SGDRegressorSoftmax(BaseCPPredictor):
         logging.info(f"Test Error: Average R2 score: {score}, Avg loss: {test_loss:>8f}")
 
     def _save_weights(self):
-        self._weights = self._model.state_dict()["linear1.weight"].squeeze()
+        self._weights = self._model.state_dict()["linear1.weight"].squeeze().tolist()
 
     def predict(self, X):
         if not self._fitted:
