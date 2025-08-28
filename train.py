@@ -123,7 +123,7 @@ def train(opts):
         with TimerContextManager(f"training predictors for schemas {action_schema_names}"):
             for i in range(len(schema_predictors)):
                 logging.info(f"Train for {action_schema_names[i]}")
-                data_loader = torch.utils.data.DataLoader(train_datasets[i], num_workers=0)
+                data_loader = torch.utils.data.DataLoader(train_datasets[i], num_workers=4)
                 schema_predictors[i].fit(data_loader)
         
         # with TimerContextManager("testing predictor on first data"):

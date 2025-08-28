@@ -13,13 +13,33 @@ from .base_predictor import BaseCPPredictor
 class LinearSoftmaxModel(nn.Module):
     def __init__(self, input_dim, hidden_dim=128):
         super(LinearSoftmaxModel, self).__init__()
-        self.linear1 = nn.Linear(input_dim, 1, dtype=torch.float64)
+        self.linear1 = nn.Linear(input_dim, 1, dtype=torch.float64, bias=False)
         
     def forward(self, x):
         # x shape: (batch_size, seq_length, input_dim)
         
         # Appliquer les couches linéaires position par position
         x = self.linear1(x)
+        
+        # Supprimer la dernière dimension
+        x = x.squeeze(-1)  # Shape: (batch_size, seq_length)
+        
+        # Appliquer softmax sur la dimension de la séquence
+        x = F.softmax(x, dim=1)
+        
+        return x
+
+
+class ConvSoftmaxModel(nn.Module):
+    def __init__(self, input_dim, kernel_size=128):
+        super(ConvSoftmaxModel, self).__init__()
+        self.conv1 = nn.Conv1d(input_dim, 1, kernel_size=3, padding=1, dtype=torch.float64, bias=False)
+        
+    def forward(self, x):
+        # x shape: (batch_size, seq_length, input_dim)
+        
+        # Appliquer les couches de convolution position par position
+        x = self.conv1(x)
         
         # Supprimer la dernière dimension
         x = x.squeeze(-1)  # Shape: (batch_size, seq_length)
@@ -81,12 +101,13 @@ class SGDRegressorSoftmax(BaseCPPredictor):
         logging.info(f"Test Error: Average R2 score: {score}, Avg loss: {test_loss:>8f}")
 
     def _save_weights(self):
-        print(self._model.state_dict())
+        self._weights = self._model.state_dict()["linear1.weight"].squeeze()
 
     def predict(self, X):
         if not self._fitted:
             raise RuntimeError("Model has not been trained yet. Call `partial_fit` to train the model.")
 
+        self._model.eval()
         return self._model.forward(X)
     
     def set_weights(self, weights):
