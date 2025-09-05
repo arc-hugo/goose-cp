@@ -45,15 +45,18 @@ class ConvSoftmaxModel(nn.Module):
         x = x.squeeze(-1)  # Shape: (batch_size, seq_length)
         
         # Appliquer softmax sur la dimension de la séquence
-        x = F.softmax(x, dim=1)
+        # x = F.softmax(x, dim=1)
         
         return x
 
 class SGDRegressorSoftmax(BaseCPPredictor):
-    def __init__(self, input_dim: int, criterion=nn.BCELoss(),
-                 optimizer=torch.optim.SGD, epoch=3, alpha=1e-3):
+    def __init__(self, input_dim: int, criterion=nn.CrossEntropyLoss(),
+                 optimizer=torch.optim.Adam, epoch=3, alpha=1e-3):
         super().__init__(epoch=epoch)
+        self._device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self._model = LinearSoftmaxModel(input_dim)
+        self._model.to(self._device)
+
         self._fitted = False
 
         self.criterion = criterion
@@ -63,6 +66,9 @@ class SGDRegressorSoftmax(BaseCPPredictor):
         self._model.train()
 
         for batch, (X, y) in enumerate(data):
+            # Pass data to device
+            X, y = X.to(self._device), y.to(self._device)
+
             # Compute prediction and loss
             pred = self._model(X)
             loss = self.criterion(pred, y)
@@ -85,6 +91,9 @@ class SGDRegressorSoftmax(BaseCPPredictor):
     
         with torch.no_grad():
             for X, y in data:
+                # Pass data to device
+                X, y = X.to(self._device), y.to(self._device)
+                
                 pred = self._model(X)
 
                 test_loss += self.criterion(pred, y).item()
@@ -100,7 +109,7 @@ class SGDRegressorSoftmax(BaseCPPredictor):
 
     def predict(self, X):
         if not self._fitted:
-            raise RuntimeError("Model has not been trained yet. Call `partial_fit` to train the model.")
+            raise RuntimeError("Model has not been trained yet. Call `fit` to train the model.")
 
         self._model.eval()
         return self._model.forward(X)

@@ -1,12 +1,10 @@
 #!/usr/bin/env python
 
 import logging
+import termcolor as tc
 
 import toml
 import torch
-import numpy as np
-
-from sklearn.metrics import mean_squared_error
 
 from learning.dataset.dataset_factory import get_dataset
 from learning.dataset.state_to_vec import embed_data, get_action_schemas_data
@@ -27,6 +25,10 @@ def train(opts):
     else:
         opts.rank = False
 
+    # Find PyTorch device
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    logging.info("Found device: " + tc.colored(device, "cyan"))
+    
     # Parse dataset
     with TimerContextManager("parsing training data"):
         domain_pddl = toml.load(opts.data_config)["domain_pddl"]
@@ -123,7 +125,8 @@ def train(opts):
         with TimerContextManager(f"training predictors for schemas {action_schema_names}"):
             for i in range(len(schema_predictors)):
                 logging.info(f"Train for {action_schema_names[i]}")
-                data_loader = torch.utils.data.DataLoader(train_datasets[i], num_workers=4)
+                data_loader = torch.utils.data.DataLoader(train_datasets[i], num_workers=4, batch_size=64, 
+                                                          persistent_workers=True, prefetch_factor=2, pin_memory=True)
                 schema_predictors[i].fit(data_loader)
         
         # with TimerContextManager("testing predictor on first data"):

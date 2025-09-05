@@ -60,8 +60,6 @@ def get_action_schemas_data(dataset: Dataset, feature_generator: Features) -> Ac
     assert isinstance(dataset, CostPartitionDataset)
     assert isinstance(feature_generator, CostPartitionFeatures)
 
-    feature_generator: CostPartitionFeatures = feature_generator
-
     return [ActionSchemaIterableDataset(feature_generator, dataset, action_schema.name) for action_schema in dataset.domain.action_schemas]
 
 
