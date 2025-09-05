@@ -7,7 +7,7 @@ import toml
 import torch
 
 from learning.dataset.dataset_factory import get_dataset
-from learning.dataset.state_to_vec import embed_data, get_action_schemas_data
+from learning.dataset.state_to_vec import embed_data, get_action_schemas_data, SameSizeCollate
 from learning.options import parse_opts
 from learning.predictor.predictor_factory import get_predictor, is_rank_predictor, get_cost_partition_predictor
 from util.distinguish_test import distinguish
@@ -125,8 +125,9 @@ def train(opts):
         with TimerContextManager(f"training predictors for schemas {action_schema_names}"):
             for i in range(len(schema_predictors)):
                 logging.info(f"Train for {action_schema_names[i]}")
+                collate = SameSizeCollate()
                 data_loader = torch.utils.data.DataLoader(train_datasets[i], num_workers=4, batch_size=64, 
-                                                          persistent_workers=True, prefetch_factor=2, pin_memory=True)
+                                                          persistent_workers=True, prefetch_factor=2, pin_memory=True, collate_fn=collate.collate_fn)
                 schema_predictors[i].fit(data_loader)
         
         # with TimerContextManager("testing predictor on first data"):
