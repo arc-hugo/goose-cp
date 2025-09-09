@@ -62,9 +62,10 @@ class BaseCPPredictor(ABC):
         for t in range(self.epochs):
             print(f"Epoch {t+1}\n-------------------------------")
             self._train_impl(data)
+            self._evaluate_impl(data)
         
-        self._evaluate_impl(data)
-        self._save_weights()
+        print("End Epoch\n-------------------------------")
+        # self._save_weights()
 
         return self
 

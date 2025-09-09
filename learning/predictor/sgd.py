@@ -13,13 +13,16 @@ from .base_predictor import BaseCPPredictor
 class LinearSoftmaxModel(nn.Module):
     def __init__(self, input_dim, hidden_dim=128):
         super(LinearSoftmaxModel, self).__init__()
-        self.linear1 = nn.Linear(input_dim, 1, dtype=torch.float64, bias=False)
+        self.linear1 = nn.Linear(input_dim, input_dim, dtype=torch.float64, bias=False)
+        self.linear2 = nn.Linear(input_dim, 1, dtype=torch.float64, bias=False)
         
     def forward(self, x):
         # x shape: (batch_size, seq_length, input_dim)
         
         # Appliquer les couches linéaires position par position
         x = self.linear1(x)
+        x = nn.ReLU(x)
+        x = self.linear2(x)
         
         # Supprimer la dernière dimension
         x = x.squeeze(-1)  # Shape: (batch_size, seq_length)
@@ -29,29 +32,9 @@ class LinearSoftmaxModel(nn.Module):
         
         return x
 
-
-class ConvSoftmaxModel(nn.Module):
-    def __init__(self, input_dim, kernel_size=128):
-        super(ConvSoftmaxModel, self).__init__()
-        self.conv1 = nn.Conv1d(input_dim, 1, kernel_size=3, padding=1, dtype=torch.float64, bias=False)
-        
-    def forward(self, x):
-        # x shape: (batch_size, seq_length, input_dim)
-        
-        # Appliquer les couches de convolution position par position
-        x = self.conv1(x)
-        
-        # Supprimer la dernière dimension
-        x = x.squeeze(-1)  # Shape: (batch_size, seq_length)
-        
-        # Appliquer softmax sur la dimension de la séquence
-        # x = F.softmax(x, dim=1)
-        
-        return x
-
 class SGDRegressorSoftmax(BaseCPPredictor):
     def __init__(self, input_dim: int, criterion=nn.CrossEntropyLoss(),
-                 optimizer=torch.optim.Adam, epoch=3, alpha=1e-3):
+                 optimizer=torch.optim.Adam, epoch=10, alpha=1e-3):
         super().__init__(epoch=epoch)
         self._device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self._model = LinearSoftmaxModel(input_dim)
@@ -87,7 +70,7 @@ class SGDRegressorSoftmax(BaseCPPredictor):
     def _evaluate_impl(self, data: DataLoader):
         self._model.eval()
 
-        test_loss, num_batches, score = 0, 0, 0
+        test_loss, num_batches = 0, 0
     
         with torch.no_grad():
             for X, y in data:
@@ -97,12 +80,10 @@ class SGDRegressorSoftmax(BaseCPPredictor):
                 pred = self._model(X)
 
                 test_loss += self.criterion(pred, y).item()
-                score += r2_score(pred.squeeze(), y.squeeze())
                 num_batches += 1
 
-        score /= num_batches
         test_loss /= num_batches
-        logging.info(f"Test Error: Average R2 score: {score}, Avg loss: {test_loss:>8f}")
+        logging.info(f"Avg loss: {test_loss:>8f}")
 
     def _save_weights(self):
         self._weights = self._model.state_dict()["linear1.weight"].squeeze().tolist()
