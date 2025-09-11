@@ -14,6 +14,7 @@ class LinearSoftmaxModel(nn.Module):
     def __init__(self, input_dim, hidden_dim=128):
         super(LinearSoftmaxModel, self).__init__()
         self.linear1 = nn.Linear(input_dim, input_dim, dtype=torch.float64, bias=False)
+        self.relu = nn.ReLU()
         self.linear2 = nn.Linear(input_dim, 1, dtype=torch.float64, bias=False)
         
     def forward(self, x):
@@ -21,7 +22,7 @@ class LinearSoftmaxModel(nn.Module):
         
         # Appliquer les couches linéaires position par position
         x = self.linear1(x)
-        x = nn.ReLU(x)
+        x = self.relu(x)
         x = self.linear2(x)
         
         # Supprimer la dernière dimension
@@ -34,7 +35,7 @@ class LinearSoftmaxModel(nn.Module):
 
 class SGDRegressorSoftmax(BaseCPPredictor):
     def __init__(self, input_dim: int, criterion=nn.CrossEntropyLoss(),
-                 optimizer=torch.optim.Adam, epoch=10, alpha=1e-3):
+                 optimizer=torch.optim.Adam, epoch=1000, alpha=1e-3):
         super().__init__(epoch=epoch)
         self._device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self._model = LinearSoftmaxModel(input_dim)
@@ -61,9 +62,8 @@ class SGDRegressorSoftmax(BaseCPPredictor):
             self.optimizer.step()
             self.optimizer.zero_grad()
 
-            if batch % 100 == 0:
-                loss = loss.item()
-                print(f"loss: {loss:>7f}")
+            # loss = loss.item()
+            # print(f"loss: {loss:>7f}")
         
         self._fitted = True
     

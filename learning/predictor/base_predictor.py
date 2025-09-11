@@ -63,8 +63,7 @@ class BaseCPPredictor(ABC):
             print(f"Epoch {t+1}\n-------------------------------")
             self._train_impl(data)
             self._evaluate_impl(data)
-        
-        print("End Epoch\n-------------------------------")
+
         # self._save_weights()
 
         return self
