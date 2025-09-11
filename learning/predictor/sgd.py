@@ -6,24 +6,26 @@ from torch import nn
 from torch.utils.data import DataLoader
 import torch.nn.functional as F
 
-from torchmetrics.functional import r2_score
-
 from .base_predictor import BaseCPPredictor
 
 class LinearSoftmaxModel(nn.Module):
     def __init__(self, input_dim, hidden_dim=128):
         super(LinearSoftmaxModel, self).__init__()
-        self.linear1 = nn.Linear(input_dim, input_dim, dtype=torch.float64, bias=False)
-        self.relu = nn.ReLU()
-        self.linear2 = nn.Linear(input_dim, 1, dtype=torch.float64, bias=False)
+        self.linear1 = nn.Linear(input_dim, input_dim, dtype=torch.float64)
+        self.relu1 = nn.ReLU()
+        self.linear2 = nn.Linear(input_dim, hidden_dim, dtype=torch.float64)
+        self.relu2 = nn.ReLU()
+        self.linear3 = nn.Linear(hidden_dim, 1, dtype=torch.float64)
         
     def forward(self, x):
         # x shape: (batch_size, seq_length, input_dim)
         
         # Appliquer les couches linéaires position par position
         x = self.linear1(x)
-        x = self.relu(x)
+        x = self.relu1(x)
         x = self.linear2(x)
+        x = self.relu2(x)
+        x = self.linear3(x)
         
         # Supprimer la dernière dimension
         x = x.squeeze(-1)  # Shape: (batch_size, seq_length)
@@ -34,7 +36,7 @@ class LinearSoftmaxModel(nn.Module):
         return x
 
 class SGDRegressorSoftmax(BaseCPPredictor):
-    def __init__(self, input_dim: int, criterion=nn.CrossEntropyLoss(),
+    def __init__(self, input_dim: int, criterion=nn.CrossEntropyLoss,
                  optimizer=torch.optim.Adam, epoch=1000, alpha=1e-3):
         super().__init__(epoch=epoch)
         self._device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -43,7 +45,7 @@ class SGDRegressorSoftmax(BaseCPPredictor):
 
         self._fitted = False
 
-        self.criterion = criterion
+        self.criterion = criterion()
         self.optimizer = optimizer(self._model.parameters(), alpha)
 
     def _train_impl(self, data: DataLoader):
