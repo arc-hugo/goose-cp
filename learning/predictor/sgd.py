@@ -49,7 +49,7 @@ class RegressorSoftmax(BaseCPPredictor):
         self.criterion = criterion()
         self.optimizer = optimizer(self._model.parameters(), alpha)
 
-    def _train_impl(self, data: DataLoader, run: wandb.Run):
+    def _train_impl(self, data: DataLoader):
         self._model.train()
 
         for _, (X, y) in enumerate(data):
@@ -59,8 +59,6 @@ class RegressorSoftmax(BaseCPPredictor):
             # Compute prediction and loss
             pred = self._model(X)
             loss = self.criterion(pred, y)
-
-            run.log({"loss": loss.item()})
 
             # Backpropagation
             loss.backward()
@@ -72,7 +70,7 @@ class RegressorSoftmax(BaseCPPredictor):
         
         self._fitted = True
     
-    def _evaluate_impl(self, data: DataLoader):
+    def _evaluate_impl(self, data: DataLoader, run: wandb.Run):
         self._model.eval()
 
         test_loss, num_batches = 0, 0
@@ -89,6 +87,8 @@ class RegressorSoftmax(BaseCPPredictor):
 
         test_loss /= num_batches
         logging.info(f"Avg loss: {test_loss:>8f}")
+        run.log({"loss": test_loss})
+
 
     def _save_weights(self):
         self._weights = self._model.state_dict()["linear1.weight"].squeeze().tolist()

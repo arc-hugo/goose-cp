@@ -76,8 +76,8 @@ class BaseCPPredictor(ABC):
 
         for t in range(self.epochs):
             print(f"Epoch {t+1}\n-------------------------------")
-            self._train_impl(data, run)
-            self._evaluate_impl(data)
+            self._train_impl(data)
+            self._evaluate_impl(data, run)
 
         # self._save_weights()
         
@@ -86,7 +86,7 @@ class BaseCPPredictor(ABC):
         return self
 
     @abstractmethod
-    def _train_impl(self, data: DataLoader, run: wandb.Run):
+    def _train_impl(self, data: DataLoader):
         pass
 
     @abstractmethod
@@ -94,7 +94,7 @@ class BaseCPPredictor(ABC):
         pass
 
     @abstractmethod
-    def _evaluate_impl(self, data: DataLoader):
+    def _evaluate_impl(self, data: DataLoader, run: wandb.Run):
         """Evaluation of training data after calling fit"""
         pass
 
