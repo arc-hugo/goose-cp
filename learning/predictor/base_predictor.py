@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
 
+import wandb
+
 import numpy as np
 
 from torch.utils.data import DataLoader
@@ -52,24 +54,39 @@ class BasePredictor(ABC):
         return ret
 
 class BaseCPPredictor(ABC):
-    def __init__(self, epoch = 1) -> None:
+    def __init__(self, domain: str, action_schema: str, epoch = 1, alpha=1e-3) -> None:
         super().__init__()
         self._weights = None
         self.epochs = epoch
+        self.alpha = alpha
+        self.domain = domain
+        self.action_schema = action_schema
 
     def fit(self, data: DataLoader):
+        run = wandb.init(
+            entity="corail",
+            project="goose-cp",
+            config={
+                "learning_rate": self.alpha,
+                "domain": self.domain,
+                "action_schema": self.action_schema,
+                "epochs": self.epochs
+            }
+        )
 
         for t in range(self.epochs):
             print(f"Epoch {t+1}\n-------------------------------")
-            self._train_impl(data)
+            self._train_impl(data, run)
             self._evaluate_impl(data)
 
         # self._save_weights()
-
+        
+        run.finish()
+        
         return self
 
     @abstractmethod
-    def _train_impl(self, data: DataLoader):
+    def _train_impl(self, data: DataLoader, run: wandb.Run):
         pass
 
     @abstractmethod

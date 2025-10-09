@@ -117,8 +117,9 @@ def train(opts):
         num_action_schemas = len(domain.action_schemas)
         action_schema_names = [a.name for a in domain.action_schemas]
 
-        schema_predictors = [get_cost_partition_predictor(opts.optimisation, feature_generator.get_n_features() + feature_generator.get_iterations()) 
-                             for _ in range(num_action_schemas)]
+        schema_predictors = [get_cost_partition_predictor(opts.optimisation, feature_generator.get_n_features() + feature_generator.get_iterations(),
+                                                          domain.name, domain.action_schemas[k].name) 
+                             for k in range(num_action_schemas)]
 
         train_datasets = get_action_schemas_data(dataset, feature_generator)
         

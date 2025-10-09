@@ -1,6 +1,7 @@
 import logging
 import numpy as np
 import torch
+import wandb
 
 from torch import nn
 from torch.utils.data import DataLoader
@@ -35,10 +36,10 @@ class LinearSoftmaxModel(nn.Module):
         
         return x
 
-class SGDRegressorSoftmax(BaseCPPredictor):
-    def __init__(self, input_dim: int, criterion=nn.CrossEntropyLoss,
-                 optimizer=torch.optim.Adam, epoch=1000, alpha=1e-3):
-        super().__init__(epoch=epoch)
+class RegressorSoftmax(BaseCPPredictor):
+    def __init__(self, input_dim: int, domain: str, action_schema: str,
+                 criterion=nn.CrossEntropyLoss, optimizer=torch.optim.Adam, epoch=1000, alpha=1e-3):
+        super().__init__(domain, action_schema, epoch=epoch, alpha=alpha)
         self._device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self._model = LinearSoftmaxModel(input_dim)
         self._model.to(self._device)
@@ -48,16 +49,18 @@ class SGDRegressorSoftmax(BaseCPPredictor):
         self.criterion = criterion()
         self.optimizer = optimizer(self._model.parameters(), alpha)
 
-    def _train_impl(self, data: DataLoader):
+    def _train_impl(self, data: DataLoader, run: wandb.Run):
         self._model.train()
 
-        for batch, (X, y) in enumerate(data):
+        for _, (X, y) in enumerate(data):
             # Pass data to device
             X, y = X.to(self._device), y.to(self._device)
 
             # Compute prediction and loss
             pred = self._model(X)
             loss = self.criterion(pred, y)
+
+            run.log({"loss": loss.item()})
 
             # Backpropagation
             loss.backward()

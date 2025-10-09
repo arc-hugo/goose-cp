@@ -5,7 +5,7 @@ from .rank_gpc import GaussianProcessRanker
 from .rank_mip import MixedIntegerProgramRanker
 from .rank_svm import SVMRanker
 from .svr import SupportVectorRegression
-from .sgd import SGDRegressorSoftmax
+from .sgd import RegressorSoftmax
 
 _PREDICTORS = {
     "gpr": GaussianProcessRegressor,
@@ -17,7 +17,7 @@ _PREDICTORS = {
 }
 
 _PREDICTORS_CP = {
-    "sgdr": SGDRegressorSoftmax
+    "sgdr": RegressorSoftmax
 }
 
 def get_available_predictors():
@@ -33,8 +33,8 @@ def get_predictor(predictor_name: str):
     else:
         raise ValueError(f"Unknown model {predictor_name}")
 
-def get_cost_partition_predictor(predictor_name: str, input_dim: int):
+def get_cost_partition_predictor(predictor_name: str, input_dim: int, domain: str, action_schema: str):
     if predictor_name in _PREDICTORS_CP:
-        return _PREDICTORS_CP[predictor_name](input_dim)
+        return _PREDICTORS_CP[predictor_name](input_dim, domain, action_schema)
     else:
         raise ValueError(f"Unknown CP model {predictor_name}")
