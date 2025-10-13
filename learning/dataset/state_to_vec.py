@@ -48,7 +48,9 @@ class ActionSchemaIterableDataset(IterableDataset):
         super().__init__()
         self.fg = feature_generator
         self.data = dataset
+        self.use_cache = False
         self.action_schema = action_schema
+        self.cache = []
 
     def __iter__(self):
         worker_info = get_worker_info()
@@ -62,15 +64,26 @@ class ActionSchemaIterableDataset(IterableDataset):
             worker_start = worker_id * per_worker
             worker_end = min(worker_start + per_worker, len(self.data.y))
 
-        for i, input in enumerate(self.fg.actions_embed_dataset(self.data.wlplan_dataset)):
-            if num_worker > 1:
-                if i < worker_start or i >= worker_end:
-                    continue
-
-            for action_name in input:
-                action_schema = get_action_schema_name(action_name)
-                if (action_schema == self.action_schema):
-                    yield np.array(input[action_name]), np.array(self.data.y[i][action_name])
+        if not self.use_cache:
+            for i, input in enumerate(self.fg.actions_embed_dataset(self.data.wlplan_dataset)):
+                if num_worker > 1:
+                    if i < worker_start or i >= worker_end:
+                        continue
+                
+                for action_name in input:
+                    action_schema = get_action_schema_name(action_name)
+                    if (action_schema == self.action_schema):
+                        train_data = np.array(input[action_name]), np.array(self.data.y[i][action_name])
+                        self.cache.append(train_data)
+                        yield train_data
+            self.use_cache = True
+        else:
+            for i, train_data in enumerate(self.cache):
+                if num_worker > 1:
+                    if i < worker_start or i >= worker_end:
+                        continue
+                
+                yield train_data
 
 
 def embed_data(dataset: Dataset, feature_generator: Features, opts: Namespace):
