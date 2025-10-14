@@ -1,5 +1,6 @@
 from argparse import Namespace
 
+import random
 import math
 import numpy as np
 from tqdm import tqdm
@@ -53,22 +54,22 @@ class ActionSchemaIterableDataset(IterableDataset):
         self.cache = []
 
     def __iter__(self):
-        worker_info = get_worker_info()
+        # worker_info = get_worker_info()
         
-        if worker_info is None:
-            num_worker = 1
-        else:
-            num_worker = worker_info.num_workers
-            per_worker = int(math.ceil(len(self.data.y) / float(num_worker)))
-            worker_id = worker_info.id
-            worker_start = worker_id * per_worker
-            worker_end = min(worker_start + per_worker, len(self.data.y))
+        # if worker_info is None:
+        #     num_worker = 1
+        # else:
+        #     num_worker = worker_info.num_workers
+        #     per_worker = int(math.ceil(len(self.data.y) / float(num_worker)))
+        #     worker_id = worker_info.id
+        #     worker_start = worker_id * per_worker
+        #     worker_end = min(worker_start + per_worker, len(self.data.y))
 
         if not self.use_cache:
             for i, input in enumerate(self.fg.actions_embed_dataset(self.data.wlplan_dataset)):
-                if num_worker > 1:
-                    if i < worker_start or i >= worker_end:
-                        continue
+                # if num_worker > 1:
+                #     if i < worker_start or i >= worker_end:
+                #         continue
                 
                 for action_name in input:
                     action_schema = get_action_schema_name(action_name)
@@ -78,10 +79,11 @@ class ActionSchemaIterableDataset(IterableDataset):
                         yield train_data
             self.use_cache = True
         else:
+            random.shuffle(self.cache)
             for i, train_data in enumerate(self.cache):
-                if num_worker > 1:
-                    if i < worker_start or i >= worker_end:
-                        continue
+                # if num_worker > 1:
+                #     if i < worker_start or i >= worker_end:
+                #         continue
                 
                 yield train_data
 
