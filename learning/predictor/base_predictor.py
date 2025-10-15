@@ -61,18 +61,21 @@ class BaseCPPredictor(ABC):
         self.alpha = alpha
         self.domain = domain
         self.action_schema = action_schema
-        self.opt_config = opt_config
+
+        self.config = {
+            "learning_rate": self.alpha,
+            "domain": self.domain,
+            "action_schema": self.action_schema,
+            "epochs": self.epochs,
+            **opt_config
+        }
 
     def fit(self, data: DataLoader):
+
         run = wandb.init(
             entity="corail",
             project="goose-cp",
-            config={
-                "learning_rate": self.alpha,
-                "domain": self.domain,
-                "action_schema": self.action_schema,
-                "epochs": self.epochs
-            } + self.opt_config
+            config=self.config
         )
 
         for t in range(self.epochs):

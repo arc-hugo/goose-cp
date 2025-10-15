@@ -1,10 +1,10 @@
 from argparse import Namespace
 
 import random
-import math
+# import math
 import numpy as np
 from tqdm import tqdm
-from torch.utils.data import IterableDataset, get_worker_info, default_collate
+from torch.utils.data import IterableDataset, default_collate
 
 from learning.dataset.container.base_dataset import Dataset
 from learning.dataset.container.ranking_dataset import RankingDataset
