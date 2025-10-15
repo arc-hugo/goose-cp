@@ -17,6 +17,10 @@ class LinearSoftmaxModel(nn.Module):
         self.linear2 = nn.Linear(input_dim, hidden_dim, dtype=torch.float64)
         self.relu2 = nn.ReLU()
         self.linear3 = nn.Linear(hidden_dim, 1, dtype=torch.float64)
+
+        nn.init.kaiming_uniform_(self.linear1.weight, nonlinearity='relu')
+        nn.init.kaiming_uniform_(self.linear2.weight, nonlinearity='relu')
+        nn.init.kaiming_uniform_(self.linear3.weight, nonlinearity='relu')
         
     def forward(self, x):
         # x shape: (batch_size, seq_length, input_dim)
@@ -38,7 +42,7 @@ class LinearSoftmaxModel(nn.Module):
 
 class RegressorSoftmax(BaseCPPredictor):
     def __init__(self, input_dim: int, domain: str, action_schema: str,
-                 criterion=nn.CrossEntropyLoss, optimizer=torch.optim.Adam, epoch=1000, alpha=1e-3):
+                 criterion=nn.CrossEntropyLoss, optimizer=torch.optim.Adam, epoch=1000, alpha=1e-2):
         super().__init__(domain, action_schema, epoch=epoch, alpha=alpha)
         self._device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self._model = LinearSoftmaxModel(input_dim)
