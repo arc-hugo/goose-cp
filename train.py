@@ -127,7 +127,7 @@ def train(opts):
             for i in range(len(schema_predictors)):
                 logging.info(f"Train for {action_schema_names[i]}")
                 collate = SameSizeCollate()
-                data_loader = torch.utils.data.DataLoader(train_datasets[i], batch_size=1, pin_memory=True, collate_fn=collate.collate_fn)
+                data_loader = torch.utils.data.DataLoader(train_datasets[i], batch_size=16, pin_memory=True, collate_fn=collate.collate_fn)
                 schema_predictors[i].fit(data_loader)
         
         # with TimerContextManager("testing predictor on first data"):

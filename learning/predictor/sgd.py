@@ -7,26 +7,36 @@ from torch import nn
 from torch.utils.data import DataLoader
 import torch.nn.functional as F
 
+from collections import OrderedDict
+
 from .base_predictor import BaseCPPredictor
 
+def weights_init(m):
+    if isinstance(m, nn.Linear):
+        torch.nn.init.kaiming_uniform_(m.weight, nonlinearity='relu')
+
 class LinearSoftmaxModel(nn.Module):
-    def __init__(self, input_dim, hidden_dim=128):
+    def __init__(self, input_dim, hidden_dim=128, num_hidden=4):
         super(LinearSoftmaxModel, self).__init__()
-        self.linear1 = nn.Linear(input_dim, input_dim, dtype=torch.float64)
-        self.relu1 = nn.ReLU()
-        self.linear2 = nn.Linear(input_dim, hidden_dim, dtype=torch.float64)
-        self.relu2 = nn.ReLU()
-        self.linear3 = nn.Linear(hidden_dim, 1, dtype=torch.float64)
+
+        sequence = [("linear1", nn.Linear(input_dim, input_dim, dtype=torch.float64)), ("relu1", nn.ReLU())]
+        if num_hidden > 0:
+            sequence += [("linear2", nn.Linear(input_dim, hidden_dim, dtype=torch.float64)), ("relu2", nn.ReLU())]
+            for i in range(3,num_hidden+2):
+                sequence += [("linear"+str(i), nn.Linear(hidden_dim, hidden_dim, dtype=torch.float64)), ("relu"+str(i), nn.ReLU())]
+            sequence += [("linear"+str(num_hidden+2), nn.Linear(hidden_dim, 1, dtype=torch.float64))]
+        else :
+            sequence += [("linear2", nn.Linear(input_dim, 1, dtype=torch.float64))]
+
+        self.seq = nn.Sequential(OrderedDict(sequence))
+
+        self.seq.apply(weights_init)
         
     def forward(self, x):
         # x shape: (batch_size, seq_length, input_dim)
         
-        # Appliquer les couches linéaires position par position
-        x = self.linear1(x)
-        x = self.relu1(x)
-        x = self.linear2(x)
-        x = self.relu2(x)
-        x = self.linear3(x)
+        # Appliquer les couches linéaires
+        x = self.seq(x)
         
         # Supprimer la dernière dimension
         x = x.squeeze(-1)  # Shape: (batch_size, seq_length)
@@ -38,7 +48,7 @@ class LinearSoftmaxModel(nn.Module):
 
 class RegressorSoftmax(BaseCPPredictor):
     def __init__(self, input_dim: int, domain: str, action_schema: str,
-                 criterion=nn.CrossEntropyLoss, optimizer=torch.optim.Adam, epoch=10, alpha=1e-3,
+                 criterion=nn.CrossEntropyLoss, optimizer=torch.optim.Adam, epoch=10, alpha=1e-2,
                  device="cuda:0"):
         self._device = torch.device(device if torch.cuda.is_available() else "cpu")
         self._model = LinearSoftmaxModel(input_dim)
