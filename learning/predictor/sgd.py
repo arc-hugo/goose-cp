@@ -19,6 +19,9 @@ class LinearSoftmaxModel(nn.Module):
     def __init__(self, input_dim, hidden_dim=128, num_hidden=4):
         super(LinearSoftmaxModel, self).__init__()
 
+        self._hidden_dim = hidden_dim
+        self._num_hidden = num_hidden
+
         sequence = [("linear1", nn.Linear(input_dim, input_dim, dtype=torch.float64)), ("relu1", nn.ReLU())]
         if num_hidden > 0:
             sequence += [("linear2", nn.Linear(input_dim, hidden_dim, dtype=torch.float64)), ("relu2", nn.ReLU())]
@@ -30,6 +33,7 @@ class LinearSoftmaxModel(nn.Module):
 
         self.seq = nn.Sequential(OrderedDict(sequence))
 
+        # Apply He init
         self.seq.apply(weights_init)
         
     def forward(self, x):
@@ -61,7 +65,9 @@ class RegressorSoftmax(BaseCPPredictor):
 
         opt_config = {
             "criterion": self.criterion.__class__.__name__,
-            "optimizer": self.optimizer.__class__.__name__
+            "optimizer": self.optimizer.__class__.__name__,
+            "hidden_dim": self._model._hidden_dim,
+            "num_hidden": self._model._num_hidden
         }
 
         super().__init__(domain, action_schema, epoch=epoch, alpha=alpha, opt_config=opt_config)
