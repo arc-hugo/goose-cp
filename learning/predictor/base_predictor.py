@@ -54,13 +54,14 @@ class BasePredictor(ABC):
         return ret
 
 class BaseCPPredictor(ABC):
-    def __init__(self, domain: str, action_schema: str, epoch = 1, alpha=1e-3) -> None:
+    def __init__(self, domain: str, action_schema: str, epoch = 1, alpha=1e-3, opt_config={}) -> None:
         super().__init__()
         self._weights = None
         self.epochs = epoch
         self.alpha = alpha
         self.domain = domain
         self.action_schema = action_schema
+        self.opt_config = opt_config
 
     def fit(self, data: DataLoader):
         run = wandb.init(
@@ -71,7 +72,7 @@ class BaseCPPredictor(ABC):
                 "domain": self.domain,
                 "action_schema": self.action_schema,
                 "epochs": self.epochs
-            }
+            } + self.opt_config
         )
 
         for t in range(self.epochs):

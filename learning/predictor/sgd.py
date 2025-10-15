@@ -38,9 +38,9 @@ class LinearSoftmaxModel(nn.Module):
 
 class RegressorSoftmax(BaseCPPredictor):
     def __init__(self, input_dim: int, domain: str, action_schema: str,
-                 criterion=nn.CrossEntropyLoss, optimizer=torch.optim.Adam, epoch=1000, alpha=1e-3):
-        super().__init__(domain, action_schema, epoch=epoch, alpha=alpha)
-        self._device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+                 criterion=nn.CrossEntropyLoss, optimizer=torch.optim.Adam, epoch=10, alpha=1e-3,
+                 device="cuda:0"):
+        self._device = torch.device(device if torch.cuda.is_available() else "cpu")
         self._model = LinearSoftmaxModel(input_dim)
         self._model.to(self._device)
 
@@ -48,6 +48,13 @@ class RegressorSoftmax(BaseCPPredictor):
 
         self.criterion = criterion()
         self.optimizer = optimizer(self._model.parameters(), alpha)
+
+        opt_config = {
+            "criterion": self.criterion.__class__.__name__,
+            "optimizer": self.optimizer.__class__.__name__
+        }
+
+        super().__init__(domain, action_schema, epoch=epoch, alpha=alpha, opt_config=opt_config)
 
     def _train_impl(self, data: DataLoader):
         self._model.train()
