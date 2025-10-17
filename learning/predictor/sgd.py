@@ -1,7 +1,7 @@
 import logging
 import numpy as np
 import torch
-import wandb
+import comet_ml
 
 from torch import nn
 from torch.utils.data import DataLoader
@@ -63,21 +63,26 @@ class RegressorSoftmax(BaseCPPredictor):
         self.criterion = criterion()
         self.optimizer = optimizer(self._model.parameters(), alpha)
 
-        opt_config = {
+        opt_params = {
             "criterion": self.criterion.__class__.__name__,
             "optimizer": self.optimizer.__class__.__name__,
             "hidden_dim": self._model._hidden_dim,
             "num_hidden": self._model._num_hidden
         }
 
-        super().__init__(domain, action_schema, epoch=epoch, alpha=alpha, opt_config=opt_config)
+        super().__init__(domain, action_schema, epoch=epoch, alpha=alpha, opt_params=opt_params)
 
-    def _train_impl(self, data: DataLoader):
+    def _train_impl(self, data: DataLoader, epoch: int, exp: comet_ml.CometExperiment):
         self._model.train()
+        total_loss = 0
+        nb_data = 0
 
         for _, (X, y) in enumerate(data):
             # Pass data to device
             X, y = X.to(self._device), y.to(self._device)
+            
+
+            self.optimizer.zero_grad()
 
             # Compute prediction and loss
             pred = self._model(X)
@@ -86,32 +91,38 @@ class RegressorSoftmax(BaseCPPredictor):
             # Backpropagation
             loss.backward()
             self.optimizer.step()
-            self.optimizer.zero_grad()
 
-            # loss = loss.item()
+            total_loss += loss.item()
             # print(f"loss: {loss:>7f}")
+            nb_data += 1
         
+        total_loss /= nb_data
+        exp.log_metrics({"loss": total_loss}, epoch=epoch)
+
+        logging.info(f"Avg loss: {total_loss:>8f}")
         self._fitted = True
     
-    def _evaluate_impl(self, data: DataLoader, run: wandb.Run):
-        self._model.eval()
+    def _evaluate_impl(self, data: DataLoader):
+        # self._model.eval()
 
-        test_loss, num_batches = 0, 0
+        # test_loss, num_batches = 0, 0
     
-        with torch.no_grad():
-            for X, y in data:
-                # Pass data to device
-                X, y = X.to(self._device), y.to(self._device)
+        # with torch.no_grad():
+        #     for X, y in data:
+        #         # Pass data to device
+        #         X, y = X.to(self._device), y.to(self._device)
                 
-                pred = self._model(X)
+        #         pred = self._model(X)
 
-                test_loss += self.criterion(pred, y).item()
-                num_batches += 1
+        #         test_loss += self.criterion(pred, y).item()
+        #         num_batches += 1
 
-        test_loss /= num_batches
-        logging.info(f"Avg loss: {test_loss:>8f}")
-        run.log({"loss": test_loss})
+        # test_loss /= num_batches
+        # logging.info(f"Avg loss: {test_loss:>8f}")
+        pass
 
+    def get_model(self):
+        return self._model
 
     def _save_weights(self):
         self._weights = self._model.state_dict()["linear1.weight"].squeeze().tolist()

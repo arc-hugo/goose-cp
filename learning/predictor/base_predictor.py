@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 
-import wandb
+import comet_ml
+from comet_ml.integration.pytorch import watch, log_model
 
 import numpy as np
 
@@ -54,7 +55,7 @@ class BasePredictor(ABC):
         return ret
 
 class BaseCPPredictor(ABC):
-    def __init__(self, domain: str, action_schema: str, epoch = 1, alpha=1e-3, opt_config={}) -> None:
+    def __init__(self, domain: str, action_schema: str, epoch = 10, alpha=1e-3, opt_params={}) -> None:
         super().__init__()
         self._weights = None
         self.epochs = epoch
@@ -62,35 +63,41 @@ class BaseCPPredictor(ABC):
         self.domain = domain
         self.action_schema = action_schema
 
-        self.config = {
+        self.params = {
             "learning_rate": self.alpha,
             "domain": self.domain,
             "action_schema": self.action_schema,
             "epochs": self.epochs,
-            **opt_config
+            **opt_params
         }
 
     def fit(self, data: DataLoader):
-
-        run = wandb.init(
-            entity="corail",
-            project="goose-cp",
-            config=self.config
+        exp = comet_ml.start(
+            project_name="goose-cp",
+            workspace="arc-hugo"
         )
 
-        for t in range(self.epochs):
-            print(f"Epoch {t+1}\n-------------------------------")
-            self._train_impl(data)
-            self._evaluate_impl(data, run)
+        exp.log_parameters(self.params)
+
+        with exp.train():
+            watch(self.get_model())
+            for t in range(self.epochs):
+                print(f"Epoch {t+1}\n-------------------------------")
+                self._train_impl(data, t, exp)
+        
+        # with exp.test():
+        #   self._evaluate_impl(data)
 
         # self._save_weights()
         
-        run.finish()
+        log_model(exp, self.get_model(), "LinearSoftmaxModel-CP")
+
+        exp.end()
         
         return self
 
     @abstractmethod
-    def _train_impl(self, data: DataLoader):
+    def _train_impl(self, data: DataLoader, epoch: int, exp: comet_ml.CometExperiment):
         pass
 
     @abstractmethod
@@ -98,8 +105,13 @@ class BaseCPPredictor(ABC):
         pass
 
     @abstractmethod
-    def _evaluate_impl(self, data: DataLoader, run: wandb.Run):
+    def _evaluate_impl(self, data: DataLoader):
         """Evaluation of training data after calling fit"""
+        pass
+
+    @abstractmethod
+    def get_model(self):
+        """Get model object"""
         pass
 
     @abstractmethod

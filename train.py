@@ -3,6 +3,7 @@
 import logging
 import termcolor as tc
 
+import comet_ml
 import toml
 import torch
 
