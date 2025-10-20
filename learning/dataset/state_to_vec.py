@@ -2,7 +2,10 @@ from argparse import Namespace
 
 import random
 # import math
+
 import numpy as np
+import torch
+
 from tqdm import tqdm
 from torch.utils.data import IterableDataset, default_collate
 
@@ -74,9 +77,10 @@ class ActionSchemaIterableDataset(IterableDataset):
                 for action_name in input:
                     action_schema = get_action_schema_name(action_name)
                     if (action_schema == self.action_schema):
-                        train_data = np.array(input[action_name]), np.array(self.data.y[i][action_name])
-                        self.cache.append(train_data)
-                        yield train_data
+                        X = torch.from_numpy(np.array(input[action_name]))
+                        y = torch.from_numpy(np.array(self.data.y[i][action_name]))
+                        self.cache.append((X,y))
+                        yield X,y
             self.use_cache = True
         else:
             random.shuffle(self.cache)
