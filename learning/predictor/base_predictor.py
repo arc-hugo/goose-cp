@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
 import comet_ml
-from comet_ml.integration.pytorch import watch, log_model
+from comet_ml.integration.pytorch import log_model
 
 import numpy as np
 
@@ -78,12 +78,10 @@ class BaseCPPredictor(ABC):
         )
 
         exp.log_parameters(self.params)
-
-        with exp.train():
-            watch(self.get_model())
-            for t in range(self.epochs):
-                print(f"Epoch {t+1}\n-------------------------------")
-                self._train_impl(data, t, exp)
+        
+        for t in range(self.epochs):
+            print(f"Epoch {t+1}\n-------------------------------")
+            self._train_impl(data, t, exp)
         
         # with exp.test():
         #   self._evaluate_impl(data)
