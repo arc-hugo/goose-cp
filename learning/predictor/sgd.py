@@ -93,7 +93,6 @@ class RegressorSoftmax(BaseCPPredictor):
             self.optimizer.step()
 
             total_loss += loss.item()
-            # print(f"loss: {loss:>7f}")
             nb_data += 1
         
         total_loss /= nb_data

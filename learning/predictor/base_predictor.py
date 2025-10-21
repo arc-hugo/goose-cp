@@ -78,9 +78,10 @@ class BaseCPPredictor(ABC):
 
         exp.log_parameters(self.params)
         
-        for t in range(self.epochs):
-            print(f"Epoch {t+1}\n-------------------------------")
-            self._train_impl(data, t, exp)
+        with exp.train():
+            for t in range(self.epochs):
+                print(f"Epoch {t+1}\n-------------------------------")
+                self._train_impl(data, t, exp)
         
         # with exp.test():
         #   self._evaluate_impl(data)
