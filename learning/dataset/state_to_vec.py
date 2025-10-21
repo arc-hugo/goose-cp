@@ -76,7 +76,7 @@ class ActionSchemaIterableDataset(IterableDataset):
                 
                 for action_name in input:
                     action_schema = get_action_schema_name(action_name)
-                    if (action_schema == self.action_schema):
+                    if (action_schema == self.action_schema and action_name in self.data.y[i]):
                         X = torch.from_numpy(np.array(input[action_name]))
                         y = torch.from_numpy(np.array(self.data.y[i][action_name]))
                         self.cache.append((X,y))
