@@ -73,8 +73,7 @@ class BaseCPPredictor(ABC):
 
     def fit(self, data: DataLoader):
         exp = comet_ml.start(
-            project_name="goose-cp",
-            workspace="arc-hugo"
+            project_name="goose-cp"
         )
 
         exp.log_parameters(self.params)

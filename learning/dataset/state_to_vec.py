@@ -79,6 +79,7 @@ class ActionSchemaIterableDataset(IterableDataset):
                     if (action_schema == self.action_schema):
                         X = torch.from_numpy(np.array(input[action_name]))
                         y = torch.from_numpy(np.array(self.data.y[i][action_name]))
+
                         self.cache.append((X,y))
                         yield X,y
             self.use_cache = True
