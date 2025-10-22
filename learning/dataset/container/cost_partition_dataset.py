@@ -9,6 +9,7 @@ class CostPartitionDataset(Dataset):
         dataset = GroundedDataset(wlplan_domain, data)
         self._y = y
         self._data = data
+        self._length: int | None = None
         
         super().__init__(wlplan_domain, dataset)
 
@@ -21,4 +22,9 @@ class CostPartitionDataset(Dataset):
         return self._data
     
     def __len__(self):
-        return len(self._data)
+        if self._length is None:
+            length = 0
+            for y_i in self.y:
+                length += len(y_i)
+            self._length = length
+        return self._length

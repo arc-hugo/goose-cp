@@ -55,18 +55,16 @@ class BasePredictor(ABC):
         return ret
 
 class BaseCPPredictor(ABC):
-    def __init__(self, domain: str, action_schema: str, epoch = 10, alpha=1e-3, opt_params={}) -> None:
+    def __init__(self, domain: str, action_schema: str, iterations: int, epoch = 10, alpha=1e-3, opt_params={}) -> None:
         super().__init__()
         self._weights = None
         self.epochs = epoch
-        self.alpha = alpha
-        self.domain = domain
-        self.action_schema = action_schema
 
         self.params = {
-            "learning_rate": self.alpha,
-            "domain": self.domain,
-            "action_schema": self.action_schema,
+            "learning_rate": alpha,
+            "domain": domain,
+            "action_schema": action_schema,
+            "iterations": iterations,
             "epochs": self.epochs,
             **opt_params
         }

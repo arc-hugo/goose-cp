@@ -51,7 +51,7 @@ class LinearSoftmaxModel(nn.Module):
         return x
 
 class RegressorSoftmax(BaseCPPredictor):
-    def __init__(self, input_dim: int, domain: str, action_schema: str,
+    def __init__(self, input_dim: int, domain: str, action_schema: str, iterations: int,
                  criterion=nn.CrossEntropyLoss, optimizer=torch.optim.Adam, epoch=1000, alpha=1e-2,
                  device="cuda:0"):
         self._device = torch.device(device if torch.cuda.is_available() else "cpu")
@@ -70,7 +70,7 @@ class RegressorSoftmax(BaseCPPredictor):
             "num_hidden": self._model._num_hidden
         }
 
-        super().__init__(domain, action_schema, epoch=epoch, alpha=alpha, opt_params=opt_params)
+        super().__init__(domain, action_schema, iterations, epoch=epoch, alpha=alpha, opt_params=opt_params)
 
     def _train_impl(self, data: DataLoader, epoch: int, exp: comet_ml.CometExperiment):
         self._model.train()
