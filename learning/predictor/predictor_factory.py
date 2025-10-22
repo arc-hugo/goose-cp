@@ -33,8 +33,8 @@ def get_predictor(predictor_name: str):
     else:
         raise ValueError(f"Unknown model {predictor_name}")
 
-def get_cost_partition_predictor(predictor_name: str, input_dim: int, domain: str, action_schema: str):
+def get_cost_partition_predictor(predictor_name: str, input_dim: int, domain: str, action_schema: str, iterations: int):
     if predictor_name in _PREDICTORS_CP:
-        return _PREDICTORS_CP[predictor_name](input_dim, domain, action_schema)
+        return _PREDICTORS_CP[predictor_name](input_dim, domain, action_schema, iterations)
     else:
         raise ValueError(f"Unknown CP model {predictor_name}")
