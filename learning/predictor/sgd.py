@@ -46,13 +46,13 @@ class LinearSoftmaxModel(nn.Module):
         x = x.squeeze(-1)  # Shape: (batch_size, seq_length)
         
         # Appliquer softmax sur la dimension de la séquence
-        x = F.softmax(x, dim=1)
+        x = F.log_softmax(x, dim=1)
         
         return x
 
 class RegressorSoftmax(BaseCPPredictor):
     def __init__(self, input_dim: int, domain: str, action_schema: str, iterations: int,
-                 criterion=nn.CrossEntropyLoss, optimizer=torch.optim.Adam, epoch=1000, alpha=1e-2,
+                 criterion=nn.KLDivLoss, optimizer=torch.optim.Adam, epoch=1000, alpha=1e-2,
                  device="cuda:0"):
         self._device = torch.device(device if torch.cuda.is_available() else "cpu")
         self._model = LinearSoftmaxModel(input_dim)
@@ -60,7 +60,7 @@ class RegressorSoftmax(BaseCPPredictor):
 
         self._fitted = False
 
-        self.criterion = criterion()
+        self.criterion = criterion(reduction='batchmean')
         self.optimizer = optimizer(self._model.parameters(), alpha)
 
         opt_params = {
@@ -76,16 +76,22 @@ class RegressorSoftmax(BaseCPPredictor):
         self._model.train()
         total_loss = 0
         nb_data = 0
+        first = True
 
         for _, (X, y) in enumerate(data):
             # Pass data to device
             X, y = X.to(self._device), y.to(self._device)
             
-
             self.optimizer.zero_grad()
 
             # Compute prediction and loss
             pred = self._model(X)
+
+            if first:
+                print(pred)
+                print(y)
+                first = False
+
             loss = self.criterion(pred, y)
 
             # Backpropagation
