@@ -48,12 +48,23 @@ class SameSizeCollate:
         return default_collate(out_batch)
         
 class ActionSchemaIterableDataset(IterableDataset):
-    def __init__(self, feature_generator: CostPartitionFeatures, dataset: Dataset, action_schema: str):
+    def __init__(self, feature_generator: CostPartitionFeatures, dataset: Dataset, action_schema: str, embed_type: str = "graph_and_actions"):
         super().__init__()
         self.fg = feature_generator
         self.data = dataset
         self.use_cache = False
         self.action_schema = action_schema
+        self.cache = []
+
+        self.embed_dataset_fn = None
+        if embed_type == "graph_and_actions":
+            self.embed_dataset_fn = self.fg.graph_and_actions_embed_dataset
+        else:
+            self.embed_dataset_fn = self.fg.actions_embed_dataset
+
+
+    def purge_cache(self):
+        del self.cache
         self.cache = []
 
     def __iter__(self):
@@ -69,7 +80,7 @@ class ActionSchemaIterableDataset(IterableDataset):
         #     worker_end = min(worker_start + per_worker, len(self.data.y))
 
         if not self.use_cache:
-            for i, input in enumerate(self.fg.actions_embed_dataset(self.data.wlplan_dataset)):
+            for i, input in enumerate(self.embed_dataset_fn(self.data.wlplan_dataset)):
                 # if num_worker > 1:
                 #     if i < worker_start or i >= worker_end:
                 #         continue
@@ -113,7 +124,7 @@ def get_action_schemas_data(dataset: Dataset, feature_generator: Features) -> Ac
     assert isinstance(dataset, CostPartitionDataset)
     assert isinstance(feature_generator, CostPartitionFeatures)
 
-    return [ActionSchemaIterableDataset(feature_generator, dataset, action_schema.name) for action_schema in dataset.domain.action_schemas]
+    return [ActionSchemaIterableDataset(feature_generator, dataset, action_schema.name, embed_type="actions") for action_schema in dataset.domain.action_schemas]
 
 
 def get_action_schema_name(name: str):

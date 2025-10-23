@@ -21,7 +21,7 @@ class LinearSoftmaxModel(nn.Module):
 
         self._hidden_dim = hidden_dim
         self._num_hidden = num_hidden
-
+        
         sequence = [("linear1", nn.Linear(input_dim, input_dim, dtype=torch.float64)), ("relu1", nn.ReLU())]
         if num_hidden > 0:
             sequence += [("linear2", nn.Linear(input_dim, hidden_dim, dtype=torch.float64)), ("relu2", nn.ReLU())]
