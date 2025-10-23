@@ -74,6 +74,8 @@ class BaseCPPredictor(ABC):
             project_name="goose-cp"
         )
 
+        exp.disable_mp()
+
         exp.log_parameters(self.params)
         
         with exp.train():
