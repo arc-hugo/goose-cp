@@ -120,7 +120,7 @@ def embed_data(dataset: Dataset, feature_generator: Features, opts: Namespace):
     return X, y, sample_weight
 
 
-def get_action_schemas_data(dataset: Dataset, feature_generator: Features) -> ActionSchemaIterableDataset:
+def get_action_schemas_data(dataset: Dataset, feature_generator: Features) -> list[ActionSchemaIterableDataset]:
     assert isinstance(dataset, CostPartitionDataset)
     assert isinstance(feature_generator, CostPartitionFeatures)
 
