@@ -128,9 +128,9 @@ def train(opts):
         train_datasets = get_action_schemas_data(dataset, feature_generator)
         validation_datasets = get_action_schemas_data(validation_dataset, feature_generator)
         
-        with TimerContextManager(f"training predictors for schemas {action_schema_names}"):
-            for i in range(len(schema_predictors)):
-                logging.info(f"Train for {action_schema_names[i]}")
+        for i in range(len(schema_predictors)):
+            with TimerContextManager(f"training predictor for {action_schema_names[i]}"):
+
                 train_data_loader = torch.utils.data.DataLoader(train_datasets[i], batch_size=1, pin_memory=True)
                 validation_data_loader = torch.utils.data.DataLoader(validation_datasets[i], batch_size=1, pin_memory=True)
                 schema_predictors[i].fit(train_data_loader, validation_data_loader)
@@ -140,10 +140,7 @@ def train(opts):
 
         if opts.save_file:
             with TimerContextManager("saving model"):
-                for schema_id in range(num_action_schemas):
-                    name = action_schema_names[schema_id]
-                    feature_generator.set_action_schema_weights(name, schema_predictors[schema_id].get_weights())
-                feature_generator.save(opts.save_file)
+                pass
 
 if __name__ == "__main__":
     init_logger()
