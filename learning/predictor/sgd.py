@@ -74,15 +74,12 @@ class RegressorSoftmax(BaseCPPredictor):
 
     def _train_impl(self, data: DataLoader, epoch: int, exp: comet_ml.CometExperiment):
         self._model.train()
-        total_loss = 0
-        nb_data = 0
+        total_loss, nb_batch = 0, 0
         first = True
 
         for _, (X, y) in enumerate(data):
             # Pass data to device
             X, y = X.to(self._device), y.to(self._device)
-            
-            self.optimizer.zero_grad()
 
             # Compute prediction and loss
             pred = self._model(X)
@@ -97,34 +94,36 @@ class RegressorSoftmax(BaseCPPredictor):
             # Backpropagation
             loss.backward()
             self.optimizer.step()
+            self.optimizer.zero_grad()
 
             total_loss += loss.item()
-            nb_data += 1
+            nb_batch += 1
         
-        total_loss /= nb_data
-        exp.log_metrics({"loss": total_loss}, epoch=epoch)
+        total_loss /= nb_batch
+        exp.log_metrics({"train_loss": total_loss}, epoch=epoch)
 
-        logging.info(f"Avg loss: {total_loss:>8f}")
+        logging.info(f"Avg train loss: {total_loss:>8f}")
         self._fitted = True
     
-    def _evaluate_impl(self, data: DataLoader):
-        # self._model.eval()
+    def _validate_impl(self, data: DataLoader, epoch: int, exp: comet_ml.CometExperiment):
+        self._model.eval()
 
-        # test_loss, num_batches = 0, 0
+        total_loss, num_batches = 0, 0
     
-        # with torch.no_grad():
-        #     for X, y in data:
-        #         # Pass data to device
-        #         X, y = X.to(self._device), y.to(self._device)
+        with torch.no_grad():
+            for X, y in data:
+                # Pass data to device
+                X, y = X.to(self._device), y.to(self._device)
                 
-        #         pred = self._model(X)
+                pred = self._model(X)
 
-        #         test_loss += self.criterion(pred, y).item()
-        #         num_batches += 1
+                total_loss += self.criterion(pred, y).item()
+                num_batches += 1
 
-        # test_loss /= num_batches
-        # logging.info(f"Avg loss: {test_loss:>8f}")
-        pass
+        total_loss /= num_batches
+
+        exp.log_metrics({"val_loss": total_loss}, epoch=epoch)
+        logging.info(f"Avg validation loss: {total_loss:>8f}")
 
     def get_model(self):
         return self._model

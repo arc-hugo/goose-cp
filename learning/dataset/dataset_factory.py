@@ -34,7 +34,7 @@ COST_PARTITION_DOMAINS = {
     "blocks"
 }
 
-def get_dataset(opts: Namespace, feature_generator: WLFeatures) -> Dataset:
+def get_train_dataset(opts: Namespace, feature_generator: WLFeatures) -> Dataset:
     """State space datasets automatically remove WL-indistinguishable states with equivalent target values."""
 
     rank = opts.rank
@@ -88,3 +88,25 @@ def get_dataset(opts: Namespace, feature_generator: WLFeatures) -> Dataset:
             raise ValueError(
                 f"Dataset configuration not supported {rank=}, {data_generation=}, {domain_is_numeric=}"
             )
+
+def get_validation_dataset(opts: Namespace, feature_generator: WLFeatures) -> Dataset:
+    """State space datasets automatically remove WL-indistinguishable states with equivalent target values."""
+
+    data_generation = opts.data_generation
+
+    kwargs = {
+        "feature_generator": feature_generator,
+        "data_config": opts.data_config,
+        "facts": opts.facts,
+        "hash_prefix": str(hash(repr(opts))),
+    }
+
+    match data_generation:
+        ##### Classic datasets #####
+        case "cost_partition":
+            del kwargs["facts"]
+            return CostPartitionDatasetCreator(**kwargs).get_validation_dataset()
+
+        ##### Remaining problems #####
+        case _:
+            raise ValueError(f"Dataset configuration not supported {data_generation=}")

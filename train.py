@@ -3,12 +3,12 @@
 import logging
 import termcolor as tc
 
-import comet_ml
+import comet_ml  # noqa: F401
 import toml
 import torch
 
-from learning.dataset.dataset_factory import get_dataset
-from learning.dataset.state_to_vec import embed_data, get_action_schemas_data, SameSizeCollate
+from learning.dataset.dataset_factory import get_train_dataset, get_validation_dataset
+from learning.dataset.state_to_vec import embed_data, get_action_schemas_data
 from learning.options import parse_opts
 from learning.predictor.predictor_factory import get_predictor, is_rank_predictor, get_cost_partition_predictor
 from util.distinguish_test import distinguish
@@ -46,7 +46,7 @@ def train(opts):
             task=opts.task
         )
         feature_generator.print_init_colours()
-        dataset = get_dataset(opts, feature_generator)
+        dataset = get_train_dataset(opts, feature_generator)
         logging.info(f"{len(dataset)=}")
 
     # Collect colours
@@ -115,6 +115,9 @@ def train(opts):
 
     else:
 
+        with TimerContextManager("parsing validation data"):
+            validation_dataset = get_validation_dataset(opts, feature_generator)
+
         num_action_schemas = len(domain.action_schemas)
         action_schema_names = [a.name for a in domain.action_schemas]
 
@@ -123,36 +126,17 @@ def train(opts):
                              for k in range(num_action_schemas)]
 
         train_datasets = get_action_schemas_data(dataset, feature_generator)
+        validation_datasets = get_action_schemas_data(validation_dataset, feature_generator)
         
         with TimerContextManager(f"training predictors for schemas {action_schema_names}"):
             for i in range(len(schema_predictors)):
                 logging.info(f"Train for {action_schema_names[i]}")
-                data_loader = torch.utils.data.DataLoader(train_datasets[i], batch_size=16, pin_memory=True)
-                schema_predictors[i].fit(data_loader)
-        
-        # with TimerContextManager("testing predictor on first data"):
-        #     for X, y in get_action_schemas_data(dataset, feature_generator):
-        #         for schema_id in range(num_action_schemas):
-        #             name = action_schema_names[schema_id]
-        #             print("Schema", name)
+                train_data_loader = torch.utils.data.DataLoader(train_datasets[i], batch_size=1, pin_memory=True)
+                validation_data_loader = torch.utils.data.DataLoader(validation_datasets[i], batch_size=1, pin_memory=True)
+                schema_predictors[i].fit(train_data_loader, validation_data_loader)
 
-        #             X_schema, y_schema = np.array(X[schema_id], dtype=object), np.array(y[schema_id], dtype=object)
-
-        #             hit_count = 0
-        #             for i in range(len(X_schema)):
-        #                 y_pred = schema_predictors[schema_id].predict(X_schema[i])
-
-        #                 print(y_pred)
-        #                 print(y_schema[i])
-        #                 mse = mean_squared_error(y_schema[i], y_pred)
-        #                 print(mse)
-        #                 if mse == 0:
-        #                     hit_count += 1
-        #                     print("HIT!")
-                    
-        #             print(f"Accurrate costs {hit_count}/{len(X_schema)}")
-                
-        #         break
+                train_datasets[i].purge_cache()
+                validation_datasets[i].purge_cache()
 
         if opts.save_file:
             with TimerContextManager("saving model"):

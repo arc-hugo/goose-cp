@@ -69,7 +69,7 @@ class BaseCPPredictor(ABC):
             **opt_params
         }
 
-    def fit(self, data: DataLoader):
+    def fit(self, train_data: DataLoader, validation_data: DataLoader):
         exp = comet_ml.start(
             project_name="goose-cp"
         )
@@ -78,15 +78,14 @@ class BaseCPPredictor(ABC):
 
         exp.log_parameters(self.params)
         
-        with exp.train():
-            for t in range(self.epochs):
-                print(f"Epoch {t+1}\n-------------------------------")
-                self._train_impl(data, t, exp)
         
-        # with exp.test():
-        #   self._evaluate_impl(data)
+        for t in range(self.epochs):
+            print(f"Epoch {t+1}\n-------------------------------")
+            with exp.train():
+                self._train_impl(train_data, t, exp)
 
-        # self._save_weights()
+            with exp.test():
+                self._validate_impl(validation_data, t, exp)
         
         log_model(exp, self.get_model(), "LinearSoftmaxModel-CP")
 
@@ -103,7 +102,7 @@ class BaseCPPredictor(ABC):
         pass
 
     @abstractmethod
-    def _evaluate_impl(self, data: DataLoader):
+    def _validate_impl(self, data: DataLoader, epoch: int, exp: comet_ml.CometExperiment):
         """Evaluation of training data after calling fit"""
         pass
 
