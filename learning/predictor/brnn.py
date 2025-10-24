@@ -10,7 +10,7 @@ import torch.nn.functional as F
 from .base_predictor import BaseCPPredictor
 
 class BRNNSoftmaxModel(nn.Module):
-    def __init__(self, input_dim, hidden_dim=128, num_hidden=3):
+    def __init__(self, input_dim, hidden_dim=128, num_hidden=1):
         super(BRNNSoftmaxModel, self).__init__()
 
         self._hidden_dim = hidden_dim
@@ -18,7 +18,8 @@ class BRNNSoftmaxModel(nn.Module):
 
         self.rnn = nn.RNN(input_size=input_dim, hidden_size=hidden_dim, num_layers=num_hidden, 
                           nonlinearity="relu", batch_first=True, bidirectional=True, dtype=torch.float64)
-        self.fc = nn.Linear(hidden_dim * 2, 1, dtype=torch.float64)
+        self.fc1 = nn.Linear(hidden_dim * 2, hidden_dim, dtype=torch.float64)
+        self.fc2 = nn.Linear(hidden_dim, 1, dtype=torch.float64)
         
     def forward(self, x):
         # x shape: (batch_size, seq_length, input_dim)
@@ -28,7 +29,8 @@ class BRNNSoftmaxModel(nn.Module):
         
         # Appliquer les couches linéaires
         x, _ = self.rnn(x, h0)
-        x = self.fc(x)
+        x = self.fc1(x)
+        x = self.fc2(x)
         
         # Supprimer la dernière dimension
         x = x.squeeze(-1)  # Shape: (batch_size, seq_length)
@@ -40,7 +42,7 @@ class BRNNSoftmaxModel(nn.Module):
 
 class BRNNSoftmax(BaseCPPredictor):
     def __init__(self, input_dim: int, domain: str, action_schema: str, iterations: int,
-                 criterion=nn.CrossEntropyLoss, optimizer=torch.optim.Adam, epoch=100, alpha=1e-3,
+                 criterion=nn.KLDivLoss, optimizer=torch.optim.Adam, epoch=1000, alpha=1e-4,
                  device="cuda:0"):
         self._device = torch.device(device if torch.cuda.is_available() else "cpu")
         self._model = BRNNSoftmaxModel(input_dim)
@@ -48,7 +50,7 @@ class BRNNSoftmax(BaseCPPredictor):
 
         self._fitted = False
 
-        self.criterion = criterion()
+        self.criterion = criterion(reduction='batchmean')
         self.optimizer = optimizer(self._model.parameters(), alpha)
 
         opt_params = {
@@ -64,6 +66,7 @@ class BRNNSoftmax(BaseCPPredictor):
         self._model.train()
         total_loss = 0
         nb_data = 0
+        first = True
 
         for _, (X, y) in enumerate(data):
             # Pass data to device
@@ -75,11 +78,12 @@ class BRNNSoftmax(BaseCPPredictor):
             # Compute prediction and loss
             # y_train = torch.unsqueeze(y, 1)
             pred = self._model(X)
-            
-            if (epoch == self.epochs - 1):
+
+            if first:
                 print(pred)
                 print(y)
-
+                first = False
+            
             loss = self.criterion(pred, y)
 
             # Backpropagation
