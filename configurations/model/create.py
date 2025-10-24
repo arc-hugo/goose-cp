@@ -17,7 +17,7 @@ DATA_LABELS = ["plan", "state-space", "all"]
 WL_CONFIGURATIONS = itertools.product(OPTIMISERS, ITERATIONS, DATA_LABELS)
 
 # WL-CP
-OPTIMISERS = ["sgdr"]
+OPTIMISERS = ["sgdr", "brnn"]
 ITERATIONS = [1, 2, 3, 4, 8, 16]
 DATA_LABELS = ["cost_partition"]
 WL_CP_CONFIGURATIONS = itertools.product(OPTIMISERS, ITERATIONS, DATA_LABELS)

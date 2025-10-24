@@ -6,6 +6,7 @@ from .rank_mip import MixedIntegerProgramRanker
 from .rank_svm import SVMRanker
 from .svr import SupportVectorRegression
 from .sgd import RegressorSoftmax
+from .brnn import BRNNSoftmax
 
 _PREDICTORS = {
     "gpr": GaussianProcessRegressor,
@@ -17,7 +18,8 @@ _PREDICTORS = {
 }
 
 _PREDICTORS_CP = {
-    "sgdr": RegressorSoftmax
+    "sgdr": RegressorSoftmax,
+    "brnn": BRNNSoftmax
 }
 
 def get_available_predictors():
