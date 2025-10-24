@@ -7,45 +7,12 @@ import numpy as np
 import torch
 
 from tqdm import tqdm
-from torch.utils.data import IterableDataset, default_collate
+from torch.utils.data import IterableDataset
 
 from learning.dataset.container.base_dataset import Dataset
 from learning.dataset.container.ranking_dataset import RankingDataset
 from learning.dataset.container.cost_partition_dataset import CostPartitionDataset
 from wlplan.feature_generation import Features, CostPartitionFeatures
-
-class SameSizeCollate:
-    def __init__(self) -> None:
-        self.save_batch = None
-
-    def collate_fn(self, batch):
-        if self.save_batch is None:
-            # print(batch[0][0].size)
-            size = batch[0][1].size
-            for i in range(1, len(batch)):
-                if batch[i][1].size != size:
-                    self.save_batch = batch[i:]
-                    return default_collate(batch[:i])
-            
-            return default_collate(batch)
-
-        size = self.save_batch[0][1].size
-        for i in range(1, len(self.save_batch)):
-            if self.save_batch[i][1].size != size:
-                out_batch = self.save_batch[:i]
-                self.save_batch = self.save_batch[i:] + batch
-                return default_collate(out_batch)
-
-        out_batch = self.save_batch
-
-        for i in range(1, len(batch)):
-            if batch[i][1].size != size:
-                self.save_batch = batch[i:]
-                return default_collate(out_batch + batch[:i])
-        
-        out_batch += batch
-        self.save_batch = None
-        return default_collate(out_batch)
         
 class ActionSchemaIterableDataset(IterableDataset):
     def __init__(self, feature_generator: CostPartitionFeatures, dataset: Dataset, action_schema: str, embed_type: str = "graph_and_actions"):
