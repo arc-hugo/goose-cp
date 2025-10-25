@@ -8,7 +8,8 @@ import toml
 import torch
 
 from learning.dataset.dataset_factory import get_train_dataset, get_validation_dataset
-from learning.dataset.state_to_vec import embed_data, get_action_schemas_data
+from learning.dataset.state_to_vec import embed_data
+from learning.dataset.torch_utils import get_action_schemas_data, collate_variable_seq
 from learning.options import parse_opts
 from learning.predictor.predictor_factory import get_predictor, is_rank_predictor, get_cost_partition_predictor
 from util.distinguish_test import distinguish
@@ -131,8 +132,8 @@ def train(opts):
         for i in range(len(schema_predictors)):
             with TimerContextManager(f"training predictor for {action_schema_names[i]}"):
 
-                train_data_loader = torch.utils.data.DataLoader(train_datasets[i], batch_size=1, pin_memory=True)
-                validation_data_loader = torch.utils.data.DataLoader(validation_datasets[i], batch_size=1, pin_memory=True)
+                train_data_loader = torch.utils.data.DataLoader(train_datasets[i], batch_size=16, pin_memory=True, collate_fn=collate_variable_seq)
+                validation_data_loader = torch.utils.data.DataLoader(validation_datasets[i], batch_size=16, pin_memory=True, collate_fn=collate_variable_seq)
                 schema_predictors[i].fit(train_data_loader, validation_data_loader)
 
                 train_datasets[i].purge_cache()
