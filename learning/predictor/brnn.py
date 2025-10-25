@@ -116,7 +116,7 @@ class BRNNSoftmax(BaseCPPredictor):
 
         total_loss /= num_batches
 
-        exp.log_metrics({"val_loss": total_loss}, epoch=epoch)
+        exp.log_metrics({"loss": total_loss}, epoch=epoch)
         logging.info(f"Avg validation loss: {total_loss:>8f}")
 
     def get_model(self):

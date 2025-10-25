@@ -84,7 +84,7 @@ class BaseCPPredictor(ABC):
             with exp.train():
                 self._train_impl(train_data, t, exp)
 
-            with exp.test():
+            with exp.validate():
                 self._validate_impl(validation_data, t, exp)
         
         log_model(exp, self.get_model(), "LinearSoftmaxModel-CP")
