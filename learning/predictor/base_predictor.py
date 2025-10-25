@@ -65,7 +65,7 @@ class BaseCPPredictor(ABC):
             "domain": domain,
             "action_schema": action_schema,
             "iterations": iterations,
-            "epochs": self.epochs,
+            "epochs": "inf",
             **opt_params
         }
 
@@ -73,19 +73,28 @@ class BaseCPPredictor(ABC):
         exp = comet_ml.start(
             project_name="goose-cp"
         )
-
         exp.disable_mp()
-
         exp.log_parameters(self.params)
+
+        tolerance = 5
+        min_delta = 0.5
+        counter = 0
         
-        
-        for t in range(self.epochs):
+        t = 0
+        while True:
             print(f"Epoch {t+1}\n-------------------------------")
             with exp.train():
-                self._train_impl(train_data, t, exp)
+                train_loss = self._train_impl(train_data, t, exp)
 
             with exp.validate():
-                self._validate_impl(validation_data, t, exp)
+                val_loss = self._validate_impl(validation_data, t, exp)
+
+            if (val_loss - train_loss) > min_delta:
+                counter += 1
+                if counter > tolerance:
+                    break
+            
+            t += 1
         
         log_model(exp, self.get_model(), "LinearSoftmaxModel-CP")
 
@@ -94,7 +103,7 @@ class BaseCPPredictor(ABC):
         return self
 
     @abstractmethod
-    def _train_impl(self, data: DataLoader, epoch: int, exp: comet_ml.CometExperiment):
+    def _train_impl(self, data: DataLoader, epoch: int, exp: comet_ml.CometExperiment) -> float:
         pass
 
     @abstractmethod
@@ -102,7 +111,7 @@ class BaseCPPredictor(ABC):
         pass
 
     @abstractmethod
-    def _validate_impl(self, data: DataLoader, epoch: int, exp: comet_ml.CometExperiment):
+    def _validate_impl(self, data: DataLoader, epoch: int, exp: comet_ml.CometExperiment) -> float:
         """Evaluation of training data after calling fit"""
         pass
 

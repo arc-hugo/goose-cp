@@ -65,11 +65,11 @@ class BRNNSoftmax(BaseCPPredictor):
 
         super().__init__(domain, action_schema, iterations, epoch=epoch, alpha=alpha, opt_params=opt_params)
 
-    def _train_impl(self, data: DataLoader, epoch: int, exp: comet_ml.CometExperiment):
+    def _train_impl(self, data: DataLoader, epoch: int, exp: comet_ml.CometExperiment) -> float:
         self._model.train()
         total_loss = 0
         nb_data = 0
-        first = True
+        # first = True
 
         for train_data in data:
             for X,y in train_data:
@@ -79,10 +79,11 @@ class BRNNSoftmax(BaseCPPredictor):
                 # Compute prediction and loss
                 pred = self._model(X)
 
-                if first:
-                    print(pred)
-                    print(y)
-                    first = False
+                # if first:
+                #     print(X)
+                #     print(pred)
+                #     print(y)
+                #     first = False
                 
                 loss = self.criterion(pred, y)
 
@@ -100,8 +101,10 @@ class BRNNSoftmax(BaseCPPredictor):
 
         logging.info(f"Avg loss: {total_loss:>8f}")
         self._fitted = True
+
+        return total_loss
     
-    def _validate_impl(self, data: DataLoader, epoch: int, exp: comet_ml.CometExperiment):
+    def _validate_impl(self, data: DataLoader, epoch: int, exp: comet_ml.CometExperiment) -> float:
         self._model.eval()
 
         total_loss, num_batches = 0, 0
@@ -121,6 +124,8 @@ class BRNNSoftmax(BaseCPPredictor):
 
         exp.log_metrics({"loss": total_loss}, epoch=epoch)
         logging.info(f"Avg validation loss: {total_loss:>8f}")
+
+        return total_loss
 
     def get_model(self):
         return self._model
