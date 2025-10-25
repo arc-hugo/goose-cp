@@ -132,8 +132,8 @@ def train(opts):
         for i in range(len(schema_predictors)):
             with TimerContextManager(f"training predictor for {action_schema_names[i]}"):
 
-                train_data_loader = torch.utils.data.DataLoader(train_datasets[i], batch_size=16, pin_memory=True, collate_fn=collate_variable_seq)
-                validation_data_loader = torch.utils.data.DataLoader(validation_datasets[i], batch_size=16, pin_memory=True, collate_fn=collate_variable_seq)
+                train_data_loader = torch.utils.data.DataLoader(train_datasets[i], batch_size=32, pin_memory=True, collate_fn=collate_variable_seq)
+                validation_data_loader = torch.utils.data.DataLoader(validation_datasets[i], batch_size=1, pin_memory=True, collate_fn=collate_variable_seq)
                 schema_predictors[i].fit(train_data_loader, validation_data_loader)
 
                 train_datasets[i].purge_cache()
