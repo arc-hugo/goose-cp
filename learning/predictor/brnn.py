@@ -4,6 +4,8 @@ import torch
 import comet_ml
 
 from torch import nn
+from torch.optim import Adam
+from torch.optim.lr_scheduler import CosineAnnealingLR
 from torch.utils.data import DataLoader
 import torch.nn.functional as F
 
@@ -42,8 +44,8 @@ class BRNNSoftmaxModel(nn.Module):
 
 class BRNNSoftmax(BaseCPPredictor):
     def __init__(self, input_dim: int, domain: str, action_schema: str, iterations: int,
-                 criterion=nn.KLDivLoss, optimizer=torch.optim.Adam, epoch=1000, alpha=1e-4,
-                 device="cuda:0"):
+                 criterion=nn.KLDivLoss, optimizer=Adam, scheduler=CosineAnnealingLR,
+                 epoch=1000, alpha=1e-5, device="cuda:0"):
         self._device = torch.device(device if torch.cuda.is_available() else "cpu")
         self._model = BRNNSoftmaxModel(input_dim)
         self._model.to(self._device)
@@ -52,6 +54,7 @@ class BRNNSoftmax(BaseCPPredictor):
 
         self.criterion = criterion(reduction='batchmean')
         self.optimizer = optimizer(self._model.parameters(), alpha)
+        self.scheduler = scheduler(self.optimizer, 100)
 
         opt_params = {
             "criterion": self.criterion.__class__.__name__,
@@ -68,30 +71,29 @@ class BRNNSoftmax(BaseCPPredictor):
         nb_data = 0
         first = True
 
-        for _, (X, y) in enumerate(data):
-            # Pass data to device
-            X, y = X.to(self._device), y.to(self._device)
-            # torch.set_printoptions(profile="full")
-            # print(X[0])
+        for train_data in data:
+            for X,y in train_data:
+                # Pass data to device
+                X, y = X.to(self._device), y.to(self._device)
 
-            # Compute prediction and loss
-            # y_train = torch.unsqueeze(y, 1)
-            pred = self._model(X)
+                # Compute prediction and loss
+                pred = self._model(X)
 
-            if first:
-                print(pred)
-                print(y)
-                first = False
-            
-            loss = self.criterion(pred, y)
+                if first:
+                    print(pred)
+                    print(y)
+                    first = False
+                
+                loss = self.criterion(pred, y)
 
-            # Backpropagation
-            loss.backward()
-            self.optimizer.step()
-            self.optimizer.zero_grad()
+                # Backpropagation
+                loss.backward()
+                self.optimizer.step()
+                self.optimizer.zero_grad()
+                self.scheduler.step()
 
-            total_loss += loss.item()
-            nb_data += 1
+                total_loss += loss.item()
+                nb_data += 1
         
         total_loss /= nb_data
         exp.log_metrics({"loss": total_loss}, epoch=epoch)
@@ -105,14 +107,15 @@ class BRNNSoftmax(BaseCPPredictor):
         total_loss, num_batches = 0, 0
     
         with torch.no_grad():
-            for X, y in data:
-                # Pass data to device
-                X, y = X.to(self._device), y.to(self._device)
-                
-                pred = self._model(X)
+            for train_data in data:
+                for X,y in train_data:
+                    # Pass data to device
+                    X, y = X.to(self._device), y.to(self._device)
+                    
+                    pred = self._model(X)
 
-                total_loss += self.criterion(pred, y).item()
-                num_batches += 1
+                    total_loss += self.criterion(pred, y).item()
+                    num_batches += 1
 
         total_loss /= num_batches
 

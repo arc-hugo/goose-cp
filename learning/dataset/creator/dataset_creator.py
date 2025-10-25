@@ -50,12 +50,15 @@ class CostPartitionData:
                 json_f = json.load(f)
 
                 for entry in json_f:
-                    y.append(entry["costs"])
+
+                    y_i = {}
+                    for action in entry["costs"]:
+                        y_i[action] = np.array(entry["costs"][action])
+                    y.append(y_i)
 
                     assign = []
                     for i, val in enumerate(entry["state"]):
                         assign.append(Variable("var"+str(i), i, val))
-
                     X.append(assign)
         
         return X, y

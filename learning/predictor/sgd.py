@@ -77,27 +77,28 @@ class RegressorSoftmax(BaseCPPredictor):
         total_loss, nb_batch = 0, 0
         first = True
 
-        for _, (X, y) in enumerate(data):
-            # Pass data to device
-            X, y = X.to(self._device), y.to(self._device)
+        for train_data in data:
+            for X,y in train_data:
+                # Pass data to device
+                X, y = X.to(self._device), y.to(self._device)
 
-            # Compute prediction and loss
-            pred = self._model(X)
+                # Compute prediction and loss
+                pred = self._model(X)
 
-            if first:
-                print(pred)
-                print(y)
-                first = False
+                if first:
+                    print(pred)
+                    print(y)
+                    first = False
 
-            loss = self.criterion(pred, y)
+                loss = self.criterion(pred, y)
 
-            # Backpropagation
-            loss.backward()
-            self.optimizer.step()
-            self.optimizer.zero_grad()
+                # Backpropagation
+                loss.backward()
+                self.optimizer.step()
+                self.optimizer.zero_grad()
 
-            total_loss += loss.item()
-            nb_batch += 1
+                total_loss += loss.item()
+                nb_batch += 1
         
         total_loss /= nb_batch
         exp.log_metrics({"train_loss": total_loss}, epoch=epoch)
@@ -111,14 +112,15 @@ class RegressorSoftmax(BaseCPPredictor):
         total_loss, num_batches = 0, 0
     
         with torch.no_grad():
-            for X, y in data:
-                # Pass data to device
-                X, y = X.to(self._device), y.to(self._device)
-                
-                pred = self._model(X)
+            for train_data in data:
+                for X,y in train_data:
+                    # Pass data to device
+                    X, y = X.to(self._device), y.to(self._device)
+                    
+                    pred = self._model(X)
 
-                total_loss += self.criterion(pred, y).item()
-                num_batches += 1
+                    total_loss += self.criterion(pred, y).item()
+                    num_batches += 1
 
         total_loss /= num_batches
 

@@ -1,74 +1,12 @@
 from argparse import Namespace
 
-import random
-# import math
-
 import numpy as np
-import torch
 
 from tqdm import tqdm
-from torch.utils.data import IterableDataset
 
 from learning.dataset.container.base_dataset import Dataset
 from learning.dataset.container.ranking_dataset import RankingDataset
-from learning.dataset.container.cost_partition_dataset import CostPartitionDataset
-from wlplan.feature_generation import Features, CostPartitionFeatures
-        
-class ActionSchemaIterableDataset(IterableDataset):
-    def __init__(self, feature_generator: CostPartitionFeatures, dataset: Dataset, action_schema: str, embed_type: str = "graph_and_actions"):
-        super().__init__()
-        self.fg = feature_generator
-        self.data = dataset
-        self.use_cache = False
-        self.action_schema = action_schema
-        self.cache = []
-
-        self.embed_dataset_fn = None
-        if embed_type == "graph_and_actions":
-            self.embed_dataset_fn = self.fg.graph_and_actions_embed_dataset
-        else:
-            self.embed_dataset_fn = self.fg.actions_embed_dataset
-
-
-    def purge_cache(self):
-        del self.cache
-        self.cache = []
-
-    def __iter__(self):
-        # worker_info = get_worker_info()
-        
-        # if worker_info is None:
-        #     num_worker = 1
-        # else:
-        #     num_worker = worker_info.num_workers
-        #     per_worker = int(math.ceil(len(self.data.y) / float(num_worker)))
-        #     worker_id = worker_info.id
-        #     worker_start = worker_id * per_worker
-        #     worker_end = min(worker_start + per_worker, len(self.data.y))
-
-        if not self.use_cache:
-            for i, input in enumerate(self.embed_dataset_fn(self.data.wlplan_dataset)):
-                # if num_worker > 1:
-                #     if i < worker_start or i >= worker_end:
-                #         continue
-                
-                for action_name in input:
-                    action_schema = get_action_schema_name(action_name)
-                    if (action_schema == self.action_schema and action_name in self.data.y[i]):
-                        X = torch.from_numpy(np.array(input[action_name]))
-                        y = torch.from_numpy(np.array(self.data.y[i][action_name]))
-
-                        self.cache.append((X,y))
-                        yield X,y
-            self.use_cache = True
-        else:
-            random.shuffle(self.cache)
-            for i, train_data in enumerate(self.cache):
-                # if num_worker > 1:
-                #     if i < worker_start or i >= worker_end:
-                #         continue
-                
-                yield train_data
+from wlplan.feature_generation import Features
 
 
 def embed_data(dataset: Dataset, feature_generator: Features, opts: Namespace):
@@ -85,17 +23,6 @@ def embed_data(dataset: Dataset, feature_generator: Features, opts: Namespace):
     else:
         raise ValueError(f"Unknown data pruning method: {opts.data_pruning}")
     return X, y, sample_weight
-
-
-def get_action_schemas_data(dataset: Dataset, feature_generator: Features) -> list[ActionSchemaIterableDataset]:
-    assert isinstance(dataset, CostPartitionDataset)
-    assert isinstance(feature_generator, CostPartitionFeatures)
-
-    return [ActionSchemaIterableDataset(feature_generator, dataset, action_schema.name) for action_schema in dataset.domain.action_schemas]
-
-
-def get_action_schema_name(name: str):
-    return name.split(" ")[0]
 
 def get_data_weighted(dataset: Dataset, feature_generator: Features, opts: Namespace):
     if opts.rank:
