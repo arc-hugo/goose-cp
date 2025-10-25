@@ -44,6 +44,8 @@ def train(opts):
             graph_representation=graph_representation,
             domain=domain,
             iterations=opts.iterations,
+            pruning=opts.feature_pruning,
+            multiset_hash=opts.multiset_hash,
             task=opts.task
         )
         feature_generator.print_init_colours()
