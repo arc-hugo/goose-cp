@@ -11,7 +11,7 @@ from wlplan.planning import parse_grounded_problem, parse_domain
 from wlplan.data import ProblemPatternsAssignments
 
 class CostPartitionDatasetCreator(DatasetCreator):
-    """Base class for creating datasets for cost partition learning. Relies on the mimir package."""
+    """Base class for creating datasets for cost partition learning."""
 
     def __init__(
         self,

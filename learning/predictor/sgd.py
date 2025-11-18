@@ -9,7 +9,7 @@ import torch.nn.functional as F
 
 from collections import OrderedDict
 
-from .base_predictor import BaseCPPredictor
+from .base_predictor import BaseEpochPredictor
 
 def weights_init(m):
     if isinstance(m, nn.Linear):
@@ -50,10 +50,10 @@ class LinearSoftmaxModel(nn.Module):
         
         return x
 
-class RegressorSoftmax(BaseCPPredictor):
+class RegressorSoftmax(BaseEpochPredictor):
     def __init__(self, input_dim: int, domain: str, action_schema: str, iterations: int,
-                 criterion=nn.KLDivLoss, optimizer=torch.optim.Adam, epoch=1000, alpha=1e-2,
-                 device="cuda:0"):
+                 criterion=nn.KLDivLoss, optimizer=torch.optim.Adam, 
+                 epoch=1000, alpha=1e-4, device="cuda:0"):
         self._device = torch.device(device if torch.cuda.is_available() else "cpu")
         self._model = LinearSoftmaxModel(input_dim)
         self._model.to(self._device)
@@ -70,7 +70,7 @@ class RegressorSoftmax(BaseCPPredictor):
             "num_hidden": self._model._num_hidden
         }
 
-        super().__init__(domain, action_schema, iterations, epoch=epoch, alpha=alpha, opt_params=opt_params)
+        super().__init__(domain, action_schema, iterations, epoch=epoch, alpha=alpha, log_params=opt_params)
 
     def _train_impl(self, data: DataLoader, epoch: int, exp: comet_ml.CometExperiment):
         self._model.train()
@@ -101,10 +101,12 @@ class RegressorSoftmax(BaseCPPredictor):
                 nb_batch += 1
         
         total_loss /= nb_batch
-        exp.log_metrics({"train_loss": total_loss}, epoch=epoch)
+        exp.log_metrics({"loss": total_loss}, epoch=epoch)
 
         logging.info(f"Avg train loss: {total_loss:>8f}")
         self._fitted = True
+
+        return total_loss
     
     def _validate_impl(self, data: DataLoader, epoch: int, exp: comet_ml.CometExperiment):
         self._model.eval()
@@ -124,8 +126,10 @@ class RegressorSoftmax(BaseCPPredictor):
 
         total_loss /= num_batches
 
-        exp.log_metrics({"val_loss": total_loss}, epoch=epoch)
+        exp.log_metrics({"loss": total_loss}, epoch=epoch)
         logging.info(f"Avg validation loss: {total_loss:>8f}")
+
+        return total_loss
 
     def get_model(self):
         return self._model

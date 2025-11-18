@@ -1,6 +1,6 @@
 from learning.predictor.rank_lp import LinearProgramRanker
 
-from .base_predictor import BaseCPPredictor
+from .base_predictor import BaseEpochPredictor
 from .gpr import GaussianProcessRegressor
 from .rank_gpc import GaussianProcessRanker
 from .rank_mip import MixedIntegerProgramRanker
@@ -36,7 +36,7 @@ def get_predictor(predictor_name: str):
     else:
         raise ValueError(f"Unknown model {predictor_name}")
 
-def get_cost_partition_predictor(predictor_name: str, input_dim: int, domain: str, action_schema: str, iterations: int) -> BaseCPPredictor:
+def get_cost_partition_predictor(predictor_name: str, input_dim: int, domain: str, action_schema: str, iterations: int) -> BaseEpochPredictor:
     if predictor_name in _PREDICTORS_CP:
         return _PREDICTORS_CP[predictor_name](input_dim, domain, action_schema, iterations)
     else:

@@ -1,3 +1,5 @@
+import math
+
 from abc import ABC, abstractmethod
 
 import comet_ml
@@ -54,9 +56,10 @@ class BasePredictor(ABC):
             ret = ret.tolist()
         return ret
 
-class BaseCPPredictor(ABC):
-    def __init__(self, domain: str, action_schema: str, iterations: int, epoch = 10, alpha=1e-3, opt_params={}) -> None:
+class BaseEpochPredictor(ABC):
+    def __init__(self, domain: str, action_schema: str, iterations: int, epoch = 10, alpha=1e-3, log_params={}) -> None:
         super().__init__()
+
         self._weights = None
         self.epochs = epoch
 
@@ -66,7 +69,7 @@ class BaseCPPredictor(ABC):
             "action_schema": action_schema,
             "iterations": iterations,
             "epochs": "inf",
-            **opt_params
+            **log_params
         }
 
     def fit(self, train_data: DataLoader, validation_data: DataLoader):
@@ -76,8 +79,8 @@ class BaseCPPredictor(ABC):
         exp.disable_mp()
         exp.log_parameters(self.params)
 
-        tolerance = 5
-        min_delta = 0.5
+        min_delta = 1e-5
+        prev_loss = math.inf
         counter = 0
         
         t = 0
@@ -86,13 +89,15 @@ class BaseCPPredictor(ABC):
             with exp.train():
                 train_loss = self._train_impl(train_data, t, exp)
 
-            with exp.test():
-                val_loss = self._validate_impl(validation_data, t, exp)
+            # with exp.test():
+            #     self._validate_impl(validation_data, t, exp)
 
-            if (val_loss - train_loss) > min_delta:
+            if (abs(prev_loss - train_loss) < min_delta):
                 counter += 1
-                if counter > tolerance:
+                if (counter > 10):
                     break
+            else:
+                counter = 0
             
             t += 1
         
@@ -103,36 +108,11 @@ class BaseCPPredictor(ABC):
         return self
 
     @abstractmethod
-    def _train_impl(self, data: DataLoader, epoch: int, exp: comet_ml.CometExperiment) -> float:
+    def _train_impl(self, data, epoch: int, exp: comet_ml.CometExperiment) -> float:
+        """Train the model on a dataset object"""
         pass
 
     @abstractmethod
-    def predict(self, X):
-        pass
-
-    @abstractmethod
-    def _validate_impl(self, data: DataLoader, epoch: int, exp: comet_ml.CometExperiment) -> float:
-        """Evaluation of training data after calling fit"""
-        pass
-
-    @abstractmethod
-    def get_model(self):
-        """Get model object"""
-        pass
-
-    @abstractmethod
-    def _save_weights(self):
-        """Save weights after fit"""
-        pass
-
-    def get_weights(self) -> list:
-        if self._weights is None:
-            raise RuntimeError("Model has not been trained yet. Call `partial_fit` to train the model.")
-        ret = self._weights
-        if isinstance(ret, np.ndarray):
-            ret = ret.tolist()
-        return ret
-
-    @abstractmethod
-    def set_weights(self, weights):
+    def _validate_impl(self, data, epoch: int, exp: comet_ml.CometExperiment) -> float:
+        """Process validation data alongside the training process"""
         pass

@@ -1,15 +1,13 @@
 import logging
-import numpy as np
 import torch
 import comet_ml
 
 from torch import nn
 from torch.optim import Adam
-from torch.optim.lr_scheduler import CosineAnnealingLR
 from torch.utils.data import DataLoader
 import torch.nn.functional as F
 
-from .base_predictor import BaseCPPredictor
+from .base_predictor import BaseEpochPredictor
 
 class BRNNSoftmaxModel(nn.Module):
     def __init__(self, input_dim, hidden_dim=128, num_hidden=1):
@@ -42,10 +40,10 @@ class BRNNSoftmaxModel(nn.Module):
         
         return x
 
-class BRNNSoftmax(BaseCPPredictor):
+class BRNNSoftmax(BaseEpochPredictor):
     def __init__(self, input_dim: int, domain: str, action_schema: str, iterations: int,
-                 criterion=nn.KLDivLoss, optimizer=Adam, scheduler=CosineAnnealingLR,
-                 epoch=1000, alpha=1e-5, device="cuda:0"):
+                 criterion=nn.KLDivLoss, optimizer=Adam,
+                 epoch=1000, alpha=1e-4, device="cuda:0"):
         self._device = torch.device(device if torch.cuda.is_available() else "cpu")
         self._model = BRNNSoftmaxModel(input_dim)
         self._model.to(self._device)
@@ -54,7 +52,6 @@ class BRNNSoftmax(BaseCPPredictor):
 
         self.criterion = criterion(reduction='batchmean')
         self.optimizer = optimizer(self._model.parameters(), alpha)
-        self.scheduler = scheduler(self.optimizer, 100)
 
         opt_params = {
             "criterion": self.criterion.__class__.__name__,
@@ -63,7 +60,7 @@ class BRNNSoftmax(BaseCPPredictor):
             "num_hidden": self._model._num_hidden
         }
 
-        super().__init__(domain, action_schema, iterations, epoch=epoch, alpha=alpha, opt_params=opt_params)
+        super().__init__(domain, action_schema, iterations, epoch=epoch, alpha=alpha, log_params=opt_params)
 
     def _train_impl(self, data: DataLoader, epoch: int, exp: comet_ml.CometExperiment) -> float:
         self._model.train()
@@ -91,7 +88,6 @@ class BRNNSoftmax(BaseCPPredictor):
                 loss.backward()
                 self.optimizer.step()
                 self.optimizer.zero_grad()
-                self.scheduler.step()
 
                 total_loss += loss.item()
                 nb_data += 1
@@ -122,28 +118,14 @@ class BRNNSoftmax(BaseCPPredictor):
 
         total_loss /= num_batches
 
-        exp.log_metrics({"val_loss": total_loss}, epoch=epoch)
+        exp.log_metrics({"loss": total_loss}, epoch=epoch)
         logging.info(f"Avg validation loss: {total_loss:>8f}")
 
         return total_loss
 
-    def get_model(self):
+    def get_model(self) -> nn.Module:
         return self._model
-
-    def _save_weights(self):
-        self._weights = self._model.state_dict()["linear1.weight"].squeeze().tolist()
-
-    def predict(self, X):
-        if not self._fitted:
-            raise RuntimeError("Model has not been trained yet. Call `fit` to train the model.")
-
-        self._model.eval()
-        return self._model.forward(X)
     
-    def set_weights(self, weights):
-        self._weights = np.array(weights)
-        self._model.coef_ = np.array(weights)
-        self._model.intercept_ = np.zeros((1,))
-        self._fitted = True
+
         
 
