@@ -79,7 +79,7 @@ class BaseEpochPredictor(ABC):
         exp.disable_mp()
         exp.log_parameters(self.params)
 
-        min_delta = 1e-5
+        min_delta = 1e-3
         prev_loss = math.inf
         counter = 0
         
@@ -89,8 +89,8 @@ class BaseEpochPredictor(ABC):
             with exp.train():
                 train_loss = self._train_impl(train_data, t, exp)
 
-            # with exp.test():
-            #     self._validate_impl(validation_data, t, exp)
+            with exp.validate():
+                self._validate_impl(validation_data, t, exp)
 
             if (abs(prev_loss - train_loss) < min_delta):
                 counter += 1

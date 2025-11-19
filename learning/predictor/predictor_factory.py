@@ -8,6 +8,8 @@ from .rank_svm import SVMRanker
 from .svr import SupportVectorRegression
 from .sgd import RegressorSoftmax
 from .brnn import BRNNSoftmax
+from .gru import GRUSoftmax
+from .self_attention import SelfAttentionSoftmax
 
 _PREDICTORS = {
     "gpr": GaussianProcessRegressor,
@@ -20,7 +22,9 @@ _PREDICTORS = {
 
 _PREDICTORS_CP = {
     "sgdr": RegressorSoftmax,
-    "brnn": BRNNSoftmax
+    "brnn": BRNNSoftmax,
+    "gru": GRUSoftmax,
+    "sa": SelfAttentionSoftmax
 }
 
 def get_available_predictors():
