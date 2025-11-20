@@ -9,6 +9,7 @@ from .svr import SupportVectorRegression
 from .sgd import RegressorSoftmax
 from .brnn import BRNNSoftmax
 from .gru import GRUSoftmax
+from .lstm import LSTMSoftmax
 from .self_attention import SelfAttentionSoftmax
 
 _PREDICTORS = {
@@ -24,6 +25,7 @@ _PREDICTORS_CP = {
     "sgdr": RegressorSoftmax,
     "brnn": BRNNSoftmax,
     "gru": GRUSoftmax,
+    "lstm": LSTMSoftmax,
     "sa": SelfAttentionSoftmax
 }
 
