@@ -68,7 +68,7 @@ class BaseEpochPredictor(ABC):
             "domain": domain,
             "action_schema": action_schema,
             "iterations": iterations,
-            "epochs": "inf",
+            "epochs": self.epochs,
             **log_params
         }
 
@@ -79,29 +79,16 @@ class BaseEpochPredictor(ABC):
         exp.disable_mp()
         exp.log_parameters(self.params)
 
-        min_delta = 1e-3
-        prev_loss = math.inf
-        counter = 0
         
-        t = 0
-        while True:
+        for t in range(self.epochs):
             print(f"Epoch {t+1}\n-------------------------------")
             with exp.train():
-                train_loss = self._train_impl(train_data, t, exp)
+                self._train_impl(train_data, t, exp)
 
             with exp.validate():
                 self._validate_impl(validation_data, t, exp)
-
-            if (abs(prev_loss - train_loss) < min_delta):
-                counter += 1
-                if (counter > 10):
-                    break
-            else:
-                counter = 0
-            
-            t += 1
         
-        log_model(exp, self.get_model(), "LinearSoftmaxModel-CP")
+        log_model(exp, self.get_model(), self.__class__.__name__)
 
         exp.end()
         

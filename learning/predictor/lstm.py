@@ -10,13 +10,13 @@ import torch.nn.functional as F
 from .base_predictor import BaseEpochPredictor
 
 class LSTMSoftmaxModel(nn.Module):
-    def __init__(self, input_dim, hidden_dim=128, num_hidden=1):
+    def __init__(self, input_dim, hidden_dim=256, num_hidden=2):
         super(LSTMSoftmaxModel, self).__init__()
 
         self._hidden_dim = hidden_dim
         self._num_hidden = num_hidden
 
-        self.rnn = nn.LSTM(input_size=input_dim, hidden_size=hidden_dim, num_layers=num_hidden, 
+        self.rnn = nn.LSTM(input_size=input_dim, hidden_size=hidden_dim, num_layers=num_hidden, dropout=0.1,
                           batch_first=True, bidirectional=True, dtype=torch.float64)
         self.fc1 = nn.Linear(hidden_dim * 2, hidden_dim, dtype=torch.float64)
         self.relu = nn.ReLU()
@@ -57,6 +57,7 @@ class LSTMSoftmax(BaseEpochPredictor):
         self.optimizer = optimizer(self._model.parameters(), alpha)
 
         opt_params = {
+            "model": "LSTMSoftmax",
             "criterion": self.criterion.__class__.__name__,
             "optimizer": self.optimizer.__class__.__name__,
             "hidden_dim": self._model._hidden_dim,
