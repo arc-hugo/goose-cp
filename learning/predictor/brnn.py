@@ -19,6 +19,7 @@ class BRNNSoftmaxModel(nn.Module):
         self.rnn = nn.RNN(input_size=input_dim, hidden_size=hidden_dim, num_layers=num_hidden, 
                           nonlinearity="relu", batch_first=True, bidirectional=True, dtype=torch.float64)
         self.fc1 = nn.Linear(hidden_dim * 2, hidden_dim, dtype=torch.float64)
+        self.relu = nn.ReLU()
         self.fc2 = nn.Linear(hidden_dim, 1, dtype=torch.float64)
         
     def forward(self, x):
@@ -30,6 +31,7 @@ class BRNNSoftmaxModel(nn.Module):
         # Appliquer les couches linéaires
         x, _ = self.rnn(x, h0)
         x = self.fc1(x)
+        x = self.relu(x)
         x = self.fc2(x)
         
         # Supprimer la dernière dimension
