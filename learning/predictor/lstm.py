@@ -16,7 +16,7 @@ class LSTMSoftmaxModel(nn.Module):
         self._hidden_dim = hidden_dim
         self._num_hidden = num_hidden
 
-        self.rnn = nn.LSTM(input_size=input_dim, hidden_size=hidden_dim, num_layers=num_hidden, dropout=0.1,
+        self.rnn = nn.LSTM(input_size=input_dim, hidden_size=hidden_dim, num_layers=num_hidden, dropout=0.25,
                           batch_first=True, bidirectional=True, dtype=torch.float64)
         self.fc1 = nn.Linear(hidden_dim * 2, hidden_dim, dtype=torch.float64)
         self.relu = nn.ReLU()
@@ -46,7 +46,7 @@ class LSTMSoftmaxModel(nn.Module):
 class LSTMSoftmax(BaseEpochPredictor):
     def __init__(self, input_dim: int, domain: str, action_schema: str, iterations: int,
                  criterion=nn.KLDivLoss, optimizer=Adam,
-                 epoch=1000, alpha=1e-5, device="cuda:0"):
+                 epoch=3000, alpha=1e-5, device="cuda:0"):
         self._device = torch.device(device if torch.cuda.is_available() else "cpu")
         self._model = LSTMSoftmaxModel(input_dim)
         self._model.to(self._device)
