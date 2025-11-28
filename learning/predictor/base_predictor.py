@@ -103,3 +103,7 @@ class BaseEpochPredictor(ABC):
     def _validate_impl(self, data, epoch: int, exp: comet_ml.CometExperiment) -> float:
         """Process validation data alongside the training process"""
         pass
+
+    @abstractmethod
+    def get_model(self):
+        pass
