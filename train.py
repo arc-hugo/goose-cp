@@ -9,7 +9,7 @@ import torch
 
 from learning.dataset.dataset_factory import get_train_dataset, get_validation_dataset
 from learning.dataset.state_to_vec import embed_data
-from learning.dataset.torch_utils import get_action_schemas_data, collate_variable_seq
+from learning.dataset.torch_utils import get_action_schemas_data, collate_variable_seq, get_all_schemas_data
 from learning.options import parse_opts
 from learning.predictor.predictor_factory import get_predictor, is_rank_predictor, get_cost_partition_predictor
 from util.distinguish_test import distinguish
@@ -121,29 +121,40 @@ def train(opts):
         with TimerContextManager("parsing validation data"):
             validation_dataset = get_validation_dataset(opts, feature_generator)
 
-        num_action_schemas = len(domain.action_schemas)
-        action_schema_names = [a.name for a in domain.action_schemas]
+        # num_action_schemas = len(domain.action_schemas)
+        # action_schema_names = [a.name for a in domain.action_schemas]
 
-        schema_predictors = [get_cost_partition_predictor(opts.optimisation, feature_generator.get_n_features(),
-                                                          domain.name, domain.action_schemas[k].name, feature_generator.get_iterations()) 
-                             for k in range(num_action_schemas)]
-
-        train_datasets = get_action_schemas_data(dataset, feature_generator)
-        validation_datasets = get_action_schemas_data(validation_dataset, feature_generator)
+        # schema_predictors = [get_cost_partition_predictor(opts.optimisation, feature_generator.get_n_features(),
+        #                                                   domain.name, domain.action_schemas[k].name, feature_generator.get_iterations()) 
+        #                      for k in range(num_action_schemas)]
         
-        for i in range(len(schema_predictors)):
-            with TimerContextManager(f"training predictor for {action_schema_names[i]}"):
+        schema_predictor = get_cost_partition_predictor(opts.optimisation, feature_generator.get_n_features(),
+                                                        domain.name, "all", feature_generator.get_iterations())
 
-                train_data_loader = torch.utils.data.DataLoader(train_datasets[i], batch_size=16, pin_memory=True, collate_fn=collate_variable_seq)
-                validation_data_loader = torch.utils.data.DataLoader(validation_datasets[i], batch_size=1, pin_memory=True, collate_fn=collate_variable_seq)
-                schema_predictors[i].fit(train_data_loader, validation_data_loader)
+        train_dataset = get_all_schemas_data(dataset, feature_generator)
+        validation_dataset = get_all_schemas_data(validation_dataset, feature_generator)
+        
+        # for i in range(len(schema_predictors)):
+        #     with TimerContextManager(f"training predictor for {action_schema_names[i]}"):
 
-                train_datasets[i].purge_cache()
-                validation_datasets[i].purge_cache()
+        #         train_data_loader = torch.utils.data.DataLoader(train_datasets[i], batch_size=128, pin_memory=True, collate_fn=collate_variable_seq)
+        #         validation_data_loader = torch.utils.data.DataLoader(validation_datasets[i], batch_size=1, pin_memory=True, collate_fn=collate_variable_seq)
+        #         schema_predictors[i].fit(train_data_loader, validation_data_loader)
+
+        #         train_datasets[i].purge_cache()
+        #         validation_datasets[i].purge_cache()
+
+        with TimerContextManager("training predictor for all action schemas"):
+            train_data_loader = torch.utils.data.DataLoader(train_dataset, batch_size=16, pin_memory=True, collate_fn=collate_variable_seq)
+            validation_data_loader = torch.utils.data.DataLoader(validation_dataset, batch_size=1, pin_memory=True, collate_fn=collate_variable_seq)
+            schema_predictor.fit(train_data_loader, validation_data_loader)
+
+            train_dataset.purge_cache()
+            validation_dataset.purge_cache()
 
         if opts.save_file:
             with TimerContextManager("saving model"):
-                pass
+                torch.save(schema_predictor.get_model().state_dict(), opts.save_file)
 
 if __name__ == "__main__":
     init_logger()
