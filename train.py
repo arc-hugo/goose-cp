@@ -169,6 +169,8 @@ def train(opts):
                     )
                 )
 
+                print("Exported model program :")
+                print(model_export)
                 torch.export.save(model_export, opts.save_file + ".pt2")
 
 if __name__ == "__main__":
