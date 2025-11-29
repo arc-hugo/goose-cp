@@ -154,7 +154,11 @@ def train(opts):
 
         if opts.save_file:
             with TimerContextManager("saving model"):
-                torch.save(schema_predictor.get_model().state_dict(), opts.save_file)
+                # Saving feature generator
+                feature_generator.save(opts.save_file + ".fg")
+
+                # Saving torch model
+                torch.save(schema_predictor.get_model().state_dict(), opts.save_file + ".pt")
 
 if __name__ == "__main__":
     init_logger()
