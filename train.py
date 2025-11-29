@@ -157,8 +157,19 @@ def train(opts):
                 # Saving feature generator
                 feature_generator.save(opts.save_file + ".fg")
 
-                # Saving torch model
-                torch.save(schema_predictor.get_model().state_dict(), opts.save_file + ".pt")
+                # Export torch model
+                dummy_data = torch.randn(128, 10, feature_generator.get_n_features())
+                model_export = torch.export.export(
+                    schema_predictor.get_model(),
+                    (dummy_data,),
+                    dynamic_shapes=(
+                        torch.export.Dim.DYNAMIC,
+                        torch.export.Dim.DYNAMIC,
+                        torch.export.Dim.STATIC
+                    )
+                )
+
+                torch.export.save(model_export, opts.save_file + ".pt2")
 
 if __name__ == "__main__":
     init_logger()
