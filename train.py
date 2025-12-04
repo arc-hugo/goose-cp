@@ -1,11 +1,14 @@
 #!/usr/bin/env python
 
+import os
 import logging
 import termcolor as tc
 
 import comet_ml  # noqa: F401
 import toml
 import torch
+
+from pathlib import Path
 
 from learning.dataset.dataset_factory import get_train_dataset, get_validation_dataset
 from learning.dataset.state_to_vec import embed_data
@@ -153,12 +156,15 @@ def train(opts):
 
         if opts.save_file:
             with TimerContextManager("saving model"):
+                # Process path
+                opts.save_file = Path(opts.save_file)
+
                 # Saving feature generator
                 feature_generator.save(opts.save_file + ".fg")
 
                 # Export torch model
                 with torch.no_grad():
-                    model = schema_predictor.get_model()
+                    model = schema_predictor.get_model().to(device="cpu")
 
                     dummy_data = (torch.randn(128, 20, feature_generator.get_n_features()),)
                     batch = torch.export.Dim("batch")
@@ -171,6 +177,11 @@ def train(opts):
                     )
 
                     print(model_export)
+
+                    _ = torch._inductor.aoti_compile_and_package(
+                        model_export,
+                        package_path=os.path.join(os.getcwd(), opts.save_file.parent + "compiled_" + opts.save_file.name + ".pt2")
+                    )
                     torch.export.save(model_export, opts.save_file + ".pt2")
 
 if __name__ == "__main__":
