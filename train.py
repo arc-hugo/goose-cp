@@ -161,29 +161,34 @@ def train(opts):
                 opts.save_file = Path(opts.save_file)
 
                 # Saving feature generator
-                feature_generator.save(opts.save_file + ".fg")
+                feature_generator.save(str(opts.save_file.with_suffix(".fg")))
 
                 # Export torch model
                 with torch.no_grad():
                     model = schema_predictor.get_model().to(device="cpu")
+                    model.eval()
 
-                    dummy_data = (torch.randn(128, 20, feature_generator.get_n_features()),)
-                    batch = torch.export.Dim("batch")
-                    dynamic_shapes = ((batch, torch.export.Dim.AUTO, torch.export.Dim.STATIC),)
+                    # dummy_data = (torch.randn(128, 20, feature_generator.get_n_features()),)
+                    # batch = torch.export.Dim("batch")
+                    # dynamic_shapes = ((batch, torch.export.Dim.AUTO, torch.export.Dim.STATIC),)
 
-                    model_export = torch.export.export(
-                        model,
-                        dummy_data,
-                        dynamic_shapes=dynamic_shapes
-                    )
+                    # model_export = torch.export.export(
+                    #     model,
+                    #     dummy_data,
+                    #     dynamic_shapes=dynamic_shapes
+                    # )
 
-                    print(model_export)
+                    # print(model_export)
 
-                    _ = torch._inductor.aoti_compile_and_package(
-                        model_export,
-                        package_path=os.path.join(os.getcwd(), opts.save_file.parent + "compiled_" + opts.save_file.name + ".pt2")
-                    )
-                    torch.export.save(model_export, opts.save_file + ".pt2")
+                    # _ = torch._inductor.aoti_compile_and_package(
+                    #     model_export,
+                    #     package_path=os.path.join(os.getcwd(), opts.save_file.parent + "compiled_" + opts.save_file.name + ".pt2")
+                    # )
+                    # torch.export.save(model_export, opts.save_file + ".pt2")
+
+                    scripted_model = torch.jit.script(model)
+
+                    scripted_model.save(str(opts.save_file.with_suffix(".pt2")))
 
 if __name__ == "__main__":
     init_logger()
