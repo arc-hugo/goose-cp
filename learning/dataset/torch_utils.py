@@ -35,8 +35,8 @@ class CustomIterableDataset(IterableDataset):
             for i, input in enumerate(self.embed_dataset_fn(self.data.wlplan_dataset)):
                 for action_name in input:
                     if (action_name in self.data.y[i]):
-                        X = torch.from_numpy(np.array(input[action_name]))
-                        y = torch.from_numpy(self.data.y[i][action_name])
+                        X = torch.from_numpy(np.array(input[action_name])).float()
+                        y = torch.from_numpy(self.data.y[i][action_name]).float()
 
                         if X.shape not in self.cache.keys():
                             self.cache[X.shape] = []

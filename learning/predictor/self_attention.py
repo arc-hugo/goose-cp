@@ -21,14 +21,14 @@ def weights_init(m):
 def linear_sequence(in_dim: int, out_dim: int, hidden_dim: int,
                     num_hidden: int, name_block: str):
     
-    sequence = [(f"{name_block}_linear1", nn.Linear(in_dim, in_dim, dtype=torch.float64)), (f"{name_block}_relu1", nn.ReLU())]
+    sequence = [(f"{name_block}_linear1", nn.Linear(in_dim, in_dim)), (f"{name_block}_relu1", nn.ReLU())]
     if num_hidden > 0:
-        sequence += [(f"{name_block}_linear2", nn.Linear(in_dim, hidden_dim, dtype=torch.float64)), (f"{name_block}_relu2", nn.ReLU())]
+        sequence += [(f"{name_block}_linear2", nn.Linear(in_dim, hidden_dim)), (f"{name_block}_relu2", nn.ReLU())]
         for i in range(3,num_hidden+2):
-            sequence += [(f"{name_block}_linear{i}", nn.Linear(hidden_dim, hidden_dim, dtype=torch.float64)), (f"{name_block}_relu{i}", nn.ReLU())]
-        sequence += [(f"{name_block}_linear{num_hidden+2}", nn.Linear(hidden_dim, out_dim, dtype=torch.float64))]
+            sequence += [(f"{name_block}_linear{i}", nn.Linear(hidden_dim, hidden_dim)), (f"{name_block}_relu{i}", nn.ReLU())]
+        sequence += [(f"{name_block}_linear{num_hidden+2}", nn.Linear(hidden_dim, out_dim))]
     else :
-        sequence += [(f"{name_block}_linear2", nn.Linear(in_dim, out_dim, dtype=torch.float64))]
+        sequence += [(f"{name_block}_linear2", nn.Linear(in_dim, out_dim))]
 
     return sequence
 
@@ -56,7 +56,7 @@ class SASoftmaxModel(nn.Module):
 
         # Multihead block
         self.multihead = nn.MultiheadAttention(
-            hidden_dim, 4, dropout, batch_first=True, dtype=torch.float64
+            hidden_dim, 4, dropout, batch_first=True
         )
 
         # Encoder block

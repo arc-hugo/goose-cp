@@ -23,8 +23,7 @@ class CostPartitionDataset(Dataset):
     
     def __len__(self):
         if self._length is None:
-            length = 0
+            self._length = 0
             for y_i in self.y:
-                length += len(y_i)
-            self._length = length
+                self._length += len(y_i)
         return self._length
