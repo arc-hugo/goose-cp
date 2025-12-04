@@ -17,16 +17,16 @@ class BRNNSoftmaxModel(nn.Module):
         self._num_hidden = num_hidden
 
         self.rnn = nn.RNN(input_size=input_dim, hidden_size=hidden_dim, num_layers=num_hidden, 
-                          nonlinearity="relu", batch_first=True, bidirectional=True, dtype=torch.float64)
-        self.fc1 = nn.Linear(hidden_dim * 2, hidden_dim, dtype=torch.float64)
+                          nonlinearity="relu", batch_first=True, bidirectional=True)
+        self.fc1 = nn.Linear(hidden_dim * 2, hidden_dim)
         self.relu = nn.ReLU()
-        self.fc2 = nn.Linear(hidden_dim, 1, dtype=torch.float64)
+        self.fc2 = nn.Linear(hidden_dim, 1)
         
     def forward(self, x):
         # x shape: (batch_size, seq_length, input_dim)
 
         # hidden states
-        h0 = torch.zeros(self._num_hidden * 2, x.size(0), self._hidden_dim, dtype=torch.float64).to(x.device)
+        h0 = torch.zeros(self._num_hidden * 2, x.size(0), self._hidden_dim).to(x.device)
         
         # Appliquer les couches linéaires
         x, _ = self.rnn(x, h0)

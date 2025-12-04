@@ -22,14 +22,14 @@ class LinearSoftmaxModel(nn.Module):
         self._hidden_dim = hidden_dim
         self._num_hidden = num_hidden
         
-        sequence = [("linear1", nn.Linear(input_dim, input_dim, dtype=torch.float64)), ("relu1", nn.ReLU())]
+        sequence = [("linear1", nn.Linear(input_dim, input_dim)), ("relu1", nn.ReLU())]
         if num_hidden > 0:
-            sequence += [("linear2", nn.Linear(input_dim, hidden_dim, dtype=torch.float64)), ("relu2", nn.ReLU())]
+            sequence += [("linear2", nn.Linear(input_dim, hidden_dim)), ("relu2", nn.ReLU())]
             for i in range(3,num_hidden+2):
-                sequence += [("linear"+str(i), nn.Linear(hidden_dim, hidden_dim, dtype=torch.float64)), ("relu"+str(i), nn.ReLU())]
-            sequence += [("linear"+str(num_hidden+2), nn.Linear(hidden_dim, 1, dtype=torch.float64))]
+                sequence += [("linear"+str(i), nn.Linear(hidden_dim, hidden_dim)), ("relu"+str(i), nn.ReLU())]
+            sequence += [("linear"+str(num_hidden+2), nn.Linear(hidden_dim, 1))]
         else :
-            sequence += [("linear2", nn.Linear(input_dim, 1, dtype=torch.float64))]
+            sequence += [("linear2", nn.Linear(input_dim, 1))]
 
         self.seq = nn.Sequential(OrderedDict(sequence))
 

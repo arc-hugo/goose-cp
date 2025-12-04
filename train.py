@@ -158,18 +158,16 @@ def train(opts):
                 feature_generator.save(opts.save_file + ".fg")
 
                 # Export torch model
-                dummy_data = torch.randn(128, 10, feature_generator.get_n_features())
+                dummy_data = (torch.randn(128, 10, feature_generator.get_n_features()),)
+                batch = torch.export.Dim("batch")
+                dynamic_shapes = ((batch, torch.export.Dim.AUTO, torch.export.Dim.STATIC),)
+
                 model_export = torch.export.export(
                     schema_predictor.get_model(),
-                    (dummy_data,),
-                    dynamic_shapes=(
-                        torch.export.Dim.DYNAMIC,
-                        torch.export.Dim.DYNAMIC,
-                        torch.export.Dim.STATIC
-                    )
+                    dummy_data,
+                    dynamic_shapes=dynamic_shapes
                 )
 
-                print("Exported model program :")
                 print(model_export)
                 torch.export.save(model_export, opts.save_file + ".pt2")
 
