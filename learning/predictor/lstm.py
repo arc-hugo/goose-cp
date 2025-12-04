@@ -10,7 +10,7 @@ import torch.nn.functional as F
 from .base_predictor import BaseEpochPredictor
 
 class LSTMSoftmaxModel(nn.Module):
-    def __init__(self, input_dim, hidden_dim=256, num_hidden=2):
+    def __init__(self, input_dim, hidden_dim=128, num_hidden=1):
         super(LSTMSoftmaxModel, self).__init__()
 
         self._hidden_dim = hidden_dim

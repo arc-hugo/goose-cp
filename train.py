@@ -130,7 +130,6 @@ def train(opts):
         
         schema_predictor = get_cost_partition_predictor(opts.optimisation, feature_generator.get_n_features(),
                                                         domain.name, "all", feature_generator.get_iterations())
-
         train_dataset = get_all_schemas_data(dataset, feature_generator)
         validation_dataset = get_all_schemas_data(validation_dataset, feature_generator)
         
@@ -146,7 +145,7 @@ def train(opts):
 
         with TimerContextManager("training predictor for all action schemas"):
             train_data_loader = torch.utils.data.DataLoader(train_dataset, batch_size=128, pin_memory=True, collate_fn=collate_variable_seq)
-            validation_data_loader = torch.utils.data.DataLoader(validation_dataset, batch_size=1, pin_memory=True, collate_fn=collate_variable_seq)
+            validation_data_loader = torch.utils.data.DataLoader(validation_dataset, batch_size=128, pin_memory=True, collate_fn=collate_variable_seq)
             schema_predictor.fit(train_data_loader, validation_data_loader)
 
             train_dataset.purge_cache()
