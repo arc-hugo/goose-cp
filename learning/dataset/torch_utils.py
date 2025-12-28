@@ -19,9 +19,6 @@ class CustomIterableDataset(IterableDataset):
         self.use_cache = False
         self.cache = {}
 
-        self.embed_dataset_fn = self.fg.graph_and_actions_embed_dataset
-
-
     def purge_cache(self):
         del self.cache
         self.cache = {}
@@ -32,7 +29,7 @@ class CustomIterableDataset(IterableDataset):
 
     def __iter__(self):
         if not self.use_cache:
-            for i, input in enumerate(self.embed_dataset_fn(self.data.wlplan_dataset)):
+            for i, input in enumerate(self.fg.embed_dataset(self.data.wlplan_dataset)):
                 for action_name in input:
                     if (action_name in self.data.y[i]):
                         X = torch.from_numpy(np.array(input[action_name])).float()
