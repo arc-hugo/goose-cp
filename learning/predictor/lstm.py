@@ -9,8 +9,12 @@ import torch.nn.functional as F
 
 from .base_predictor import BaseEpochPredictor
 
+def weights_init(m):
+    if isinstance(m, nn.Linear):
+        torch.nn.init.kaiming_uniform_(m.weight, nonlinearity='relu')
+
 class LSTMSoftmaxModel(nn.Module):
-    def __init__(self, input_dim, hidden_dim=256, num_hidden=2):
+    def __init__(self, input_dim, hidden_dim=128, num_hidden=1):
         super(LSTMSoftmaxModel, self).__init__()
 
         self._hidden_dim = hidden_dim
@@ -21,6 +25,8 @@ class LSTMSoftmaxModel(nn.Module):
         self.fc1 = nn.Linear(hidden_dim * 2, hidden_dim)
         self.relu = nn.ReLU()
         self.fc2 = nn.Linear(hidden_dim, 1)
+
+        self.fc1.apply(weights_init)
         
     def forward(self, x):
         # x shape: (batch_size, seq_length, input_dim)
@@ -46,7 +52,7 @@ class LSTMSoftmaxModel(nn.Module):
 class LSTMSoftmax(BaseEpochPredictor):
     def __init__(self, input_dim: int, domain: str, action_schema: str, iterations: int,
                  criterion=nn.KLDivLoss, optimizer=Adam,
-                 epoch=3000, alpha=1e-5, device="cuda:0"):
+                 epoch=10, alpha=1e-5, device="cuda:0"):
         self._device = torch.device(device if torch.cuda.is_available() else "cpu")
         self._model = LSTMSoftmaxModel(input_dim)
         self._model.to(self._device)
@@ -81,9 +87,9 @@ class LSTMSoftmax(BaseEpochPredictor):
                 pred = self._model(X)
 
                 if first:
+                    print(X)
                     print(pred)
                     print(y)
-                    first = False
                 
                 loss = self.criterion(pred, y)
 
@@ -94,6 +100,8 @@ class LSTMSoftmax(BaseEpochPredictor):
 
                 total_loss += loss.item()
                 nb_data += 1
+        
+            first = False
         
         total_loss /= nb_data
         exp.log_metrics({"loss": total_loss}, epoch=epoch)
