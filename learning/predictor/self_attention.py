@@ -33,7 +33,7 @@ def linear_sequence(in_dim: int, out_dim: int, hidden_dim: int,
     return sequence
 
 class SASoftmaxModel(nn.Module):
-    def __init__(self, input_dim, hidden_dim=1028, num_hidden=2, dropout=0.1):
+    def __init__(self, input_dim, hidden_dim=256, num_hidden=1, dropout=0.25):
         super(SASoftmaxModel, self).__init__()
 
         self._hidden_dim = hidden_dim
@@ -56,7 +56,7 @@ class SASoftmaxModel(nn.Module):
 
         # Multihead block
         self.multihead = nn.MultiheadAttention(
-            hidden_dim, 4, dropout, batch_first=True
+            hidden_dim, 1, dropout, batch_first=True
         )
 
         # Encoder block

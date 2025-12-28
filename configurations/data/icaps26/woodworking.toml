@@ -1,3 +1,0 @@
-domain_pddl = 'cost_partition/icaps26/woodworking/domain.pddl'
-tasks_dir = 'cost_partition/icaps26/woodworking/training'
-validation_dir = 'cost_partition/icaps26/woodworking/validation'

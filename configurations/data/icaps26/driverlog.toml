@@ -1,0 +1,3 @@
+domain_pddl = 'cost_partition/icaps26/driverlog/domain.pddl'
+tasks_dir = 'cost_partition/icaps26/driverlog/training'
+validation_dir = 'cost_partition/icaps26/driverlog/validation'
