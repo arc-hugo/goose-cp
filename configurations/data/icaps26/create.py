@@ -8,7 +8,8 @@ os.system(f"rm -rf {_CUR_DIR}/*.toml")
 DOMAINS = [
     "blocks",
     "transport",
-    "woodworking",
+    "driverlog",
+    "logistics"
 ]
 
 
