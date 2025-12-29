@@ -69,7 +69,7 @@ class SASoftmaxModel(nn.Module):
 
         qkv = qkv.view(batch_size, seq_size, 3, self._num_head, self._head_dim)
         qkv = qkv.permute(2, 0, 3, 1, 4)
-        Q, K, V = qkv
+        Q, K, V = qkv.unbind()
         
         # Dropout
         dropout = 0. if not self.training else self.dropout
