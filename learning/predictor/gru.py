@@ -31,8 +31,8 @@ class GRUSoftmaxModel(nn.Module):
         # Appliquer les couches linéaires
         x, _ = self.rnn(x, h0)
         x = self.fc1(x)
-        x = self.relu(x)
-        x = self.fc2(x)
+        # x = self.relu(x)
+        # x = self.fc2(x)
         
         # Supprimer la dernière dimension
         x = x.squeeze(-1)  # Shape: (batch_size, seq_length)
