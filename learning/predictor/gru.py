@@ -18,9 +18,9 @@ class GRUSoftmaxModel(nn.Module):
 
         self.rnn = nn.GRU(input_size=input_dim, hidden_size=hidden_dim, num_layers=num_hidden, 
                           batch_first=True, bidirectional=True)
-        self.fc1 = nn.Linear(hidden_dim * 2, hidden_dim)
-        self.relu = nn.ReLU()
-        self.fc2 = nn.Linear(hidden_dim, 1)
+        self.fc1 = nn.Linear(hidden_dim * 2, 1)
+        # self.relu = nn.ReLU()
+        # self.fc2 = nn.Linear(hidden_dim, 1)
         
     def forward(self, x):
         # x shape: (batch_size, seq_length, input_dim)

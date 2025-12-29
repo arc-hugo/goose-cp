@@ -22,11 +22,11 @@ class LSTMSoftmaxModel(nn.Module):
 
         self.rnn = nn.LSTM(input_size=input_dim, hidden_size=hidden_dim, num_layers=num_hidden, dropout=0.25,
                           batch_first=True, bidirectional=True)
-        self.fc1 = nn.Linear(hidden_dim * 2, hidden_dim)
-        self.relu = nn.ReLU()
-        self.fc2 = nn.Linear(hidden_dim, 1)
+        self.fc1 = nn.Linear(hidden_dim * 2, 1)
+        # self.relu = nn.ReLU()
+        # self.fc2 = nn.Linear(hidden_dim, 1)
 
-        self.fc1.apply(weights_init)
+        # self.fc1.apply(weights_init)
         
     def forward(self, x):
         # x shape: (batch_size, seq_length, input_dim)
