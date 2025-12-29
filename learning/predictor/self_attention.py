@@ -94,7 +94,7 @@ class SASoftmaxModel(nn.Module):
 class SelfAttentionSoftmax(BaseEpochPredictor):
     def __init__(self, input_dim: int, domain: str, action_schema: str, iterations: int,
                  criterion=nn.KLDivLoss, optimizer=AdamW,
-                 epoch=3000, alpha=1e-4, device="cuda:0"):
+                 epoch=1000, alpha=1e-4, device="cuda:0"):
         self._device = torch.device(device if torch.cuda.is_available() else "cpu")
         self._model = SASoftmaxModel(input_dim)
         self._model.to(self._device)
