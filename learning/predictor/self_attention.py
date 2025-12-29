@@ -33,47 +33,25 @@ def linear_sequence(in_dim: int, out_dim: int, hidden_dim: int,
     return sequence
 
 class SASoftmaxModel(nn.Module):
-    def __init__(self, input_dim, hidden_dim=256, num_hidden=1, dropout=0.25):
+    def __init__(self, input_dim, hidden_dim=1024, num_head=4, dropout=0.1, qkv_bias=False):
         super(SASoftmaxModel, self).__init__()
-
-        self._hidden_dim = hidden_dim
-        self._num_hidden = num_hidden
+        assert hidden_dim % num_head == 0
         
-        # Query encoder block
-        self.Q_fc = nn.Sequential(OrderedDict(linear_sequence(
-            input_dim, hidden_dim, hidden_dim, num_hidden, "Q"
-        )))
-
-        # Key encoder block
-        self.K_fc = nn.Sequential(OrderedDict(linear_sequence(
-            input_dim, hidden_dim, hidden_dim, num_hidden, "K"
-        )))
-
-        # Value encoder block
-        self.V_fc = nn.Sequential(OrderedDict(linear_sequence(
-            input_dim, hidden_dim, hidden_dim, num_hidden, "V"
-        )))
-
-        # Multihead block
-        self.multihead = nn.MultiheadAttention(
-            hidden_dim, 1, dropout, batch_first=True
-        )
-
-        # Encoder block
-        # self.input_fc = nn.Sequential(OrderedDict(linear_sequence(
-        #     input_dim, hidden_dim, hidden_dim, num_hidden, "input"
-        # )))
+        self._hidden_dim = hidden_dim
+        self._num_head = num_head
+        self._head_dim = hidden_dim // num_head
+        
+        # Encoder block for queries, keys and values
+        self.QKV_fc = nn.Linear(input_dim, 3 * hidden_dim, bias=qkv_bias)
 
         # Decoder block
-        self.output_fc = nn.Sequential(OrderedDict(linear_sequence(
-            hidden_dim, 1, hidden_dim, num_hidden, "output"
-        )))
+        self.output_fc = nn.Linear(hidden_dim, 1)
 
+        # Dropout block
+        self.dropout = dropout
 
         # Apply He init to all blocks
-        self.Q_fc.apply(weights_init)
-        self.V_fc.apply(weights_init)
-        self.K_fc.apply(weights_init)
+        self.QKV_fc.apply(weights_init)
         # self.input_fc.apply(weights_init)
         self.output_fc.apply(weights_init)
 
@@ -81,25 +59,32 @@ class SASoftmaxModel(nn.Module):
         self.scale_factor = 1 / math.sqrt(hidden_dim)
         
     def forward(self, x: torch.Tensor):
-        # x shape: (batch_size, seq_length, input_dim)
+        # x shape: (batch_size, seq_size, input_dim)
+        batch_size, seq_size, _ = x.shape
 
-        # x = x.unsqueeze(1) # Shape: (batch_size, num_head, seq_length, input_dim)
+        # x = x.unsqueeze(1) # Shape: (batch_size, num_head, seq_size, input_dim)
 
         # Apply blocks Query, Key, Value
-        Q = self.Q_fc(x)
-        K = self.K_fc(x)
-        V = self.V_fc(x)
+        qkv: torch.Tensor = self.QKV_fc(x)
+
+        qkv = qkv.view(batch_size, seq_size, 3, self._num_head, self._head_dim)
+        qkv = qkv.permute(2, 0, 3, 1, 4)
+        Q, K, V = qkv
         
-        # inp = self.input_fc(x)
+        # Dropout
+        dropout = 0. if not self.training else self.dropout
 
         # Compute scaled dot product attention
-        dot_prod, _ = self.multihead(Q, K, V)
+        context_vec = nn.functional.scaled_dot_product_attention(
+             Q, K, V, attn_mask=None, dropout_p=dropout
+        )
+        context_vec = context_vec.transpose(1, 2).contiguous().view(batch_size, seq_size, self._hidden_dim)
 
-        # Apply output block on dot product
-        out = self.output_fc(dot_prod)
+        # Output projection
+        out = self.output_fc(context_vec)
 
         # Supprimer de la deuxième et la dernière dimension
-        out = out.squeeze(-1) #.squeeze(1) # Shape: (batch_size, seq_length)
+        out = out.squeeze(-1) #.squeeze(1) # Shape: (batch_size, seq_size)
         
         # Appliquer softmax sur la dimension de la séquence
         out = F.log_softmax(out, dim=1)
@@ -123,7 +108,7 @@ class SelfAttentionSoftmax(BaseEpochPredictor):
             "criterion": self.criterion.__class__.__name__,
             "optimizer": self.optimizer.__class__.__name__,
             "hidden_dim": self._model._hidden_dim,
-            "num_hidden": self._model._num_hidden
+            "num_head": self._model._num_head
         }
 
         super().__init__(domain, action_schema, iterations, epoch=epoch, alpha=alpha, log_params=opt_params)
