@@ -56,6 +56,8 @@ class LSTMSoftmax(BaseEpochPredictor):
         self._device = torch.device(device if torch.cuda.is_available() else "cpu")
         self._model = LSTMSoftmaxModel(input_dim)
         self._model.to(self._device)
+        if torch.cuda.is_available():
+            self._model.rnn.flatten_parameters()
 
         self._fitted = False
 

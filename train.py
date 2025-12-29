@@ -164,7 +164,7 @@ def train(opts):
 
                 # Export torch model
                 with torch.no_grad():
-                    model = schema_predictor.get_model().to(device="cpu")
+                    model = schema_predictor.get_model()
                     model.eval()
 
                     # dummy_data = (torch.randn(128, 20, feature_generator.get_n_features()),)
