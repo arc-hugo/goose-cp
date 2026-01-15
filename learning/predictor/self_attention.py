@@ -51,9 +51,9 @@ class SASoftmaxModel(nn.Module):
         self.dropout = dropout
 
         # Apply He init to all blocks
-        self.QKV_fc.apply(weights_init)
+        # self.QKV_fc.apply(weights_init)
         # self.input_fc.apply(weights_init)
-        self.output_fc.apply(weights_init)
+        # self.output_fc.apply(weights_init)
 
         # Compute scale factor
         self.scale_factor = 1 / math.sqrt(hidden_dim)
