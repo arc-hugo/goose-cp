@@ -10,7 +10,7 @@ from .sgd import RegressorSoftmax
 from .brnn import BRNNSoftmax
 from .gru import GRUSoftmax
 from .lstm import LSTMSoftmax
-from .self_attention import SelfAttentionSoftmax
+from .self_attention import SelfAttentionPredictor
 
 _PREDICTORS = {
     "gpr": GaussianProcessRegressor,
@@ -26,7 +26,7 @@ _PREDICTORS_CP = {
     "brnn": BRNNSoftmax,
     "gru": GRUSoftmax,
     "lstm": LSTMSoftmax,
-    "sa": SelfAttentionSoftmax
+    "sa": SelfAttentionPredictor
 }
 
 def get_available_predictors():

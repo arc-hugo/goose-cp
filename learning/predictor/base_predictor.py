@@ -107,3 +107,7 @@ class BaseEpochPredictor(ABC):
     @abstractmethod
     def get_model(self):
         pass
+
+    @abstractmethod
+    def get_inference_model(self):
+        pass

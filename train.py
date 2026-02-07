@@ -33,7 +33,7 @@ def train(opts):
     # Find PyTorch device
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     logging.info("Found device: " + tc.colored(device, "cyan"))
-    
+
     # Parse dataset
     with TimerContextManager("parsing training data"):
         domain_pddl = toml.load(opts.data_config)["domain_pddl"]
@@ -55,17 +55,17 @@ def train(opts):
         dataset = get_train_dataset(opts, feature_generator)
         logging.info(f"{len(dataset)=}")
 
-    # Collect colours
-    with TimerContextManager("collecting colours"):
-        feature_generator.collect(dataset.wlplan_dataset)
-    logging.info("n_colours_per_layer:")
-    for i, n_colours in enumerate(feature_generator.get_layer_to_n_colours()):
-        logging.info(f"  {i}={n_colours}")
-    if opts.collect_only:
-        logging.info("Exiting after collecting colours.")
-        exit(0)
-
     if opts.task == "heuristic":
+        # Collect colours
+        with TimerContextManager("collecting colours"):
+            feature_generator.collect(dataset.wlplan_dataset)
+        logging.info("n_colours_per_layer:")
+        for i, n_colours in enumerate(feature_generator.get_layer_to_n_colours()):
+            logging.info(f"  {i}={n_colours}")
+        if opts.collect_only:
+            logging.info("Exiting after collecting colours.")
+            exit(0)
+
         # Construct features
         with TimerContextManager("constructing features"):
             X, y, sample_weight = embed_data(
@@ -120,9 +120,20 @@ def train(opts):
                 feature_generator.save(opts.save_file)
 
     else:
+        with TimerContextManager("spliting validation data"):
+            training_dataset, validation_dataset = dataset.split_dataset()
+            logging.info(f"{len(training_dataset)=}")
+            logging.info(f"{len(validation_dataset)=}")
 
-        with TimerContextManager("parsing validation data"):
-            validation_dataset = get_validation_dataset(opts, feature_generator)
+        # Collect colours
+        with TimerContextManager("collecting colours"):
+            feature_generator.collect(training_dataset.wlplan_dataset)
+        logging.info("n_colours_per_layer:")
+        for i, n_colours in enumerate(feature_generator.get_layer_to_n_colours()):
+            logging.info(f"  {i}={n_colours}")
+        if opts.collect_only:
+            logging.info("Exiting after collecting colours.")
+            exit(0)
 
         # num_action_schemas = len(domain.action_schemas)
         # action_schema_names = [a.name for a in domain.action_schemas]
@@ -133,8 +144,8 @@ def train(opts):
         
         schema_predictor = get_cost_partition_predictor(opts.optimisation, feature_generator.get_n_features(),
                                                         domain.name, "all", feature_generator.get_iterations())
-        train_dataset = get_all_schemas_data(dataset, feature_generator)
-        validation_dataset = get_all_schemas_data(validation_dataset, feature_generator)
+        train_dataset = get_all_schemas_data(training_dataset, feature_generator)
+        val_dataset = get_all_schemas_data(validation_dataset, feature_generator)
         
         # for i in range(len(schema_predictors)):
         #     with TimerContextManager(f"training predictor for {action_schema_names[i]}"):
@@ -148,11 +159,11 @@ def train(opts):
 
         with TimerContextManager("training predictor for all action schemas"):
             train_data_loader = torch.utils.data.DataLoader(train_dataset, batch_size=256, pin_memory=True, collate_fn=collate_variable_seq)
-            validation_data_loader = torch.utils.data.DataLoader(validation_dataset, batch_size=256, pin_memory=True, collate_fn=collate_variable_seq)
+            validation_data_loader = torch.utils.data.DataLoader(val_dataset, batch_size=256, pin_memory=True, collate_fn=collate_variable_seq)
             schema_predictor.fit(train_data_loader, validation_data_loader)
 
             train_dataset.purge_cache()
-            validation_dataset.purge_cache()
+            val_dataset.purge_cache()
 
         if opts.save_file:
             with TimerContextManager("saving model"):
@@ -164,30 +175,29 @@ def train(opts):
 
                 # Export torch model
                 with torch.no_grad():
-                    model = schema_predictor.get_model()
+                    model = schema_predictor.get_inference_model()
                     model.eval()
 
-                    # dummy_data = (torch.randn(128, 20, feature_generator.get_n_features()),)
-                    # batch = torch.export.Dim("batch")
-                    # dynamic_shapes = ((batch, torch.export.Dim.AUTO, torch.export.Dim.STATIC),)
+                    dummy_data = (torch.randn(128, 20, feature_generator.get_n_features()),)
+                    batch = torch.export.Dim("batch")
+                    dynamic_shapes = ((batch, torch.export.Dim.AUTO, torch.export.Dim.STATIC),)
 
-                    # model_export = torch.export.export(
-                    #     model,
-                    #     dummy_data,
-                    #     dynamic_shapes=dynamic_shapes
-                    # )
+                    model_export = torch.export.export(
+                        model,
+                        dummy_data,
+                        dynamic_shapes=dynamic_shapes
+                    )
 
-                    # print(model_export)
+                    print(model_export)
 
-                    # _ = torch._inductor.aoti_compile_and_package(
-                    #     model_export,
-                    #     package_path=os.path.join(os.getcwd(), opts.save_file.parent + "compiled_" + opts.save_file.name + ".pt2")
-                    # )
-                    # torch.export.save(model_export, opts.save_file + ".pt2")
+                    # [Note] Also saving export program to be able to use AOT on different platforms
+                    torch.export.save(model_export, str(opts.save_file.with_suffix(".pt2")))
+                    torch._inductor.aoti_compile_and_package(
+                        model_export,
+                        package_path=str(opts.save_file.with_suffix(".aoti.pt2")),
+                        inductor_configs={"max_autotune": True}
+                    )
 
-                    scripted_model = torch.jit.script(model)
-
-                    scripted_model.save(str(opts.save_file.with_suffix(".pt2")))
 
 if __name__ == "__main__":
     init_logger()
