@@ -140,9 +140,10 @@ class SelfAttentionPredictor(BaseEpochPredictor):
         first = True
 
         for train_data in data:
-            for X,y in train_data:
+            for X, y in train_data:
                 # Pass data to device
-                X, y = X.to(self._device), y.to(self._device)
+                X = X.to_dense().to(self._device)
+                y = y.to_dense().to(self._device)
 
                 # Compute prediction and loss
                 pred = self._model(X)
@@ -177,10 +178,11 @@ class SelfAttentionPredictor(BaseEpochPredictor):
     
         with torch.no_grad():
             for train_data in data:
-                for X,y in train_data:
+                for X, y in train_data:
                     # Pass data to device
-                    X, y = X.to(self._device), y.to(self._device)
-                    
+                    X = X.to_dense().to(self._device)
+                    y = y.to_dense().to(self._device)
+
                     pred = self._model(X)
 
                     total_loss += self.criterion(pred, y).item()

@@ -38,8 +38,8 @@ class CustomIterableDataset(IterableDataset):
                 for action_name in input:
                     if (action_name in self.data.y[y_index][i]
                         and self.data.y[y_index][i][action_name].dtype != np.object_):
-                        X = torch.from_numpy(np.array(input[action_name])).float().to_sparse()
-                        y = torch.from_numpy(self.data.y[y_index][i][action_name]).float()
+                        X = torch.tensor(input[action_name]).float().to_sparse()
+                        y = self.data.y[y_index][i][action_name]
 
                         if X.shape not in self.cache.keys():
                             self.cache[X.shape] = []

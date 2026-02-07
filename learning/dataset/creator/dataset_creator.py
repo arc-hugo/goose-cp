@@ -4,7 +4,7 @@ from abc import abstractmethod
 from enum import Enum
 
 import toml
-import numpy as np
+import torch
 from tqdm import tqdm
 from fastavro import reader
 
@@ -41,7 +41,7 @@ class CostPartitionData:
 
             return json_f["pattern"]
 
-    def parse_data(self) -> tuple[list[list[int]], list[np.ndarray[float]]]:
+    def parse_data(self):
         X = []
         y = []
         with open(self.data, 'rb') as f:
@@ -50,7 +50,8 @@ class CostPartitionData:
             for entry in avro_data:
                 y_i = {}
                 for action in entry["costs"]:
-                    y_i[action] = np.array(entry["costs"][action])
+                    if not all(x is None for x in entry["costs"][action]):
+                        y_i[action] = torch.tensor(entry["costs"][action]).float().to_sparse()
                 y.append(y_i)
 
                 assign = []
