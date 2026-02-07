@@ -9,7 +9,14 @@ DOMAINS = [
     "blocks",
     "transport",
     "driverlog",
-    "logistics"
+    "logistics",
+    "miconic",
+    "rovers",
+    "satellite",
+    "floortile",
+    "childsnack",
+    "sokoban",
+    "spanner"
 ]
 
 

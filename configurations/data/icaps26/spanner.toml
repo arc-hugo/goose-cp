@@ -1,0 +1,3 @@
+domain_pddl = 'cost_partition/icaps26/spanner/domain.pddl'
+tasks_dir = 'cost_partition/icaps26/spanner/training'
+validation_dir = 'cost_partition/icaps26/spanner/validation'

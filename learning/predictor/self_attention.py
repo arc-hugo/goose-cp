@@ -33,7 +33,7 @@ def linear_sequence(in_dim: int, out_dim: int, hidden_dim: int,
     return sequence
 
 class SASoftmaxModel(nn.Module):
-    def __init__(self, input_dim, hidden_dim=128, num_head=1, dropout=0., qkv_bias=False):
+    def __init__(self, input_dim, hidden_dim=1024, num_head=4, dropout=0.25, qkv_bias=False):
         super(SASoftmaxModel, self).__init__()
         assert hidden_dim % num_head == 0
         
