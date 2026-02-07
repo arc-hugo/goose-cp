@@ -24,5 +24,4 @@ for domain in DOMAINS:
     file = f"{_CUR_DIR}/{domain}.toml"
     with open(file, "w") as f:
         f.write(f"domain_pddl = 'cost_partition/icaps26/{domain}/domain.pddl'\n")
-        f.write(f"tasks_dir = 'cost_partition/icaps26/{domain}/training'\n")
-        f.write(f"validation_dir = 'cost_partition/icaps26/{domain}/validation'\n")
+        f.write(f"tasks_dir = 'cost_partition/icaps26/{domain}/instances'\n")

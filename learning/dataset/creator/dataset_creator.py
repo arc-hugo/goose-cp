@@ -1,5 +1,4 @@
 import os
-import glob
 import json
 from abc import abstractmethod
 from enum import Enum
@@ -7,6 +6,7 @@ from enum import Enum
 import toml
 import numpy as np
 from tqdm import tqdm
+from fastavro import reader
 
 import wlplan
 from learning.dataset.container.base_dataset import Dataset
@@ -26,41 +26,38 @@ class ProblemType(Enum):
 
 class CostPartitionData:
     def __init__(self,
-                 folder_path : str,
+                 folder_path: str,
                  problem_path: str,
                  patterns_path: str,
-                 data_paths: list[str]):
+                 data_path: str):
         self._folder_path = folder_path
         self.problem = problem_path
         self.patterns = patterns_path
-        self.datas = data_paths
-    
+        self.data = data_path
+
     def parse_patterns(self) -> list[list[int]]:
         with open(self.patterns) as f:
             json_f = json.load(f)
 
             return json_f["pattern"]
-    
+
     def parse_data(self) -> tuple[list[list[int]], list[np.ndarray[float]]]:
         X = []
         y = []
+        with open(self.data, 'rb') as f:
+            avro_data = reader(f)
 
-        for data in self.datas:
-            with open(data) as f:
-                json_f = json.load(f)
+            for entry in avro_data:
+                y_i = {}
+                for action in entry["costs"]:
+                    y_i[action] = np.array(entry["costs"][action])
+                y.append(y_i)
 
-                for entry in json_f:
+                assign = []
+                for i, val in enumerate(entry["state"]):
+                    assign.append(Variable("var"+str(i), i, val))
+                X.append(assign)
 
-                    y_i = {}
-                    for action in entry["costs"]:
-                        y_i[action] = np.array(entry["costs"][action])
-                    y.append(y_i)
-
-                    assign = []
-                    for i, val in enumerate(entry["state"]):
-                        assign.append(Variable("var"+str(i), i, val))
-                    X.append(assign)
-        
         return X, y
 
 
@@ -79,8 +76,10 @@ class DatasetCreator:
         # plans_dir collected later as not always necessary (e.g. state space data)
         self._data_config = data_config
 
-        assert os.path.exists(self.domain_pddl), get_path_error_msg(self.domain_pddl)
-        assert os.path.exists(self.tasks_dir), get_path_error_msg(self.tasks_dir)
+        assert os.path.exists(
+            self.domain_pddl), get_path_error_msg(self.domain_pddl)
+        assert os.path.exists(
+            self.tasks_dir), get_path_error_msg(self.tasks_dir)
 
         self.wlplan_domain = wlplan.planning.parse_domain(self.domain_pddl)
 
@@ -95,28 +94,31 @@ class DatasetCreator:
         match problem_type:
             case ProblemType.Plans:
                 self.plans_dir = self._data_config["plans_dir"]
-                assert os.path.exists(self.plans_dir), get_path_error_msg(self.plans_dir)
+                assert os.path.exists(
+                    self.plans_dir), get_path_error_msg(self.plans_dir)
                 for f in sorted(os.listdir(self.plans_dir)):
-                    problem_pddl = self.tasks_dir + "/" + f.replace(".plan", ".pddl")
+                    problem_pddl = self.tasks_dir + \
+                        "/" + f.replace(".plan", ".pddl")
                     plan_file = self.plans_dir + "/" + f
                     pbar.append((problem_pddl, plan_file))
             case ProblemType.StateSpace:
-                pbar = [self.tasks_dir + "/" + f for f in sorted(os.listdir(self.tasks_dir))]
+                pbar = [self.tasks_dir + "/" +
+                        f for f in sorted(os.listdir(self.tasks_dir))]
             case ProblemType.CostPartition:
-                problem_dirs = [f for f in os.scandir(self.tasks_dir) if f.is_dir()]
+                problem_dirs = [f for f in os.scandir(
+                    self.tasks_dir) if f.is_dir()]
                 for dir in problem_dirs:
-                    data_files = sorted(glob.glob(dir.path + "/data-*.json"))
-
-                    needed_files = (os.path.exists(dir.path + "/problem.pddl") and 
+                    needed_files = (os.path.exists(dir.path + "/problem.pddl") and
                                     os.path.exists(dir.path + "/pattern.json") and
-                                    len(data_files) > 0)
-                    
+                                    os.path.exists(dir.path + "/data.avro"))
+
                     if not needed_files:
                         continue
 
-                    pbar.append(CostPartitionData(dir.path, dir.path + "/problem.pddl",
+                    pbar.append(CostPartitionData(dir.path,
+                                                  dir.path + "/problem.pddl",
                                                   dir.path + "/pattern.json",
-                                                  data_files))
+                                                  dir.path + "/data.avro"))
 
         pbar = tqdm(pbar, desc="Collecting data from problems")
         return pbar

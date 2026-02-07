@@ -32,9 +32,9 @@ def linear_sequence(in_dim: int, out_dim: int, hidden_dim: int,
 
     return sequence
 
-class SASoftmaxModel(nn.Module):
+class SAModel(nn.Module):
     def __init__(self, input_dim, hidden_dim=1024, num_head=4, dropout=0.25, qkv_bias=False):
-        super(SASoftmaxModel, self).__init__()
+        super(SAModel, self).__init__()
         assert hidden_dim % num_head == 0
         
         self._hidden_dim = hidden_dim
@@ -49,14 +49,6 @@ class SASoftmaxModel(nn.Module):
 
         # Dropout block
         self.dropout = dropout
-
-        # Apply He init to all blocks
-        # self.QKV_fc.apply(weights_init)
-        # self.input_fc.apply(weights_init)
-        # self.output_fc.apply(weights_init)
-
-        # Compute scale factor
-        self.scale_factor = 1 / math.sqrt(hidden_dim)
         
     def forward(self, x: torch.Tensor):
         # x shape: (batch_size, seq_size, input_dim)
@@ -65,6 +57,7 @@ class SASoftmaxModel(nn.Module):
         # x = x.unsqueeze(1) # Shape: (batch_size, num_head, seq_size, input_dim)
 
         # Apply blocks Query, Key, Value
+        x = x.to_dense()
         qkv: torch.Tensor = self.QKV_fc(x)
 
         qkv = qkv.view(batch_size, seq_size, 3, self._num_head, self._head_dim)
@@ -86,17 +79,44 @@ class SASoftmaxModel(nn.Module):
         # Supprimer de la deuxième et la dernière dimension
         out = out.squeeze(-1) #.squeeze(1) # Shape: (batch_size, seq_size)
         
-        # Appliquer softmax sur la dimension de la séquence
-        out = F.log_softmax(out, dim=1)
-        
         return out
 
-class SelfAttentionSoftmax(BaseEpochPredictor):
+class SATrainingModel(SAModel):
+    def __init__(self, input_dim, hidden_dim=128, num_head=1, dropout=0., qkv_bias=False):
+        super().__init__(input_dim=input_dim, hidden_dim=hidden_dim,
+                         num_head=num_head, dropout=dropout, qkv_bias=qkv_bias)
+
+        self.save_kwargs = {
+            "input_dim": input_dim,
+            "hidden_dim": hidden_dim,
+            "num_head": num_head,
+            "dropout": dropout,
+            "qkv_bias": qkv_bias
+        }
+
+    def forward(self, x: torch.Tensor):
+        out = super().forward(x)
+
+        return F.log_softmax(out, dim=1)
+
+class SAInferenceModel(SAModel):
+    def __init__(self, trained_model: SATrainingModel):
+        super().__init__(**trained_model.save_kwargs)
+
+        self.load_state_dict(trained_model.state_dict())
+        
+
+    def forward(self, x: torch.Tensor):
+        out = super().forward(x)
+
+        return F.softmax(out, dim=1).T
+
+class SelfAttentionPredictor(BaseEpochPredictor):
     def __init__(self, input_dim: int, domain: str, action_schema: str, iterations: int,
                  criterion=nn.KLDivLoss, optimizer=AdamW,
-                 epoch=1000, alpha=1e-4, device="cuda:0"):
+                 epoch=1, alpha=1e-4, device="cuda:0"):
         self._device = torch.device(device if torch.cuda.is_available() else "cpu")
-        self._model = SASoftmaxModel(input_dim)
+        self._model = SATrainingModel(input_dim)
         self._model.to(self._device)
 
         self._fitted = False
@@ -175,7 +195,6 @@ class SelfAttentionSoftmax(BaseEpochPredictor):
 
     def get_model(self) -> nn.Module:
         return self._model
-    
 
-        
-
+    def get_inference_model(self):
+        return SAInferenceModel(self._model)

@@ -29,17 +29,24 @@ class CustomIterableDataset(IterableDataset):
 
     def __iter__(self):
         if not self.use_cache:
-            for i, input in enumerate(self.fg.embed_dataset(self.data.wlplan_dataset)):
+            y_index = 0
+            i = 0
+            for input in self.fg.embed_dataset(self.data.wlplan_dataset):
+                while i >= len(self.data.y[y_index]):
+                    i = 0
+                    y_index += 1
                 for action_name in input:
-                    if (action_name in self.data.y[i] and self.data.y[i][action_name].dtype != np.object_):
-                        X = torch.from_numpy(np.array(input[action_name])).float()
-                        y = torch.from_numpy(self.data.y[i][action_name]).float()
+                    if (action_name in self.data.y[y_index][i]
+                        and self.data.y[y_index][i][action_name].dtype != np.object_):
+                        X = torch.from_numpy(np.array(input[action_name])).float().to_sparse()
+                        y = torch.from_numpy(self.data.y[y_index][i][action_name]).float()
 
                         if X.shape not in self.cache.keys():
                             self.cache[X.shape] = []
-                        self.cache[X.shape].append((X,y))
+                        self.cache[X.shape].append((X, y))
 
-                        yield X,y
+                        yield X, y
+                i += 1
 
             self.use_cache = True
         else:
@@ -82,8 +89,7 @@ class ActionSchemaIterableDataset(IterableDataset):
                         if X.shape not in self.cache.keys():
                             self.cache[X.shape] = []
                         self.cache[X.shape].append((X,y))
-
-                        yield X,y
+                        yield X, y
 
             self.use_cache = True
         else:

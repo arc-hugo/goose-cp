@@ -1,3 +1,2 @@
 domain_pddl = 'cost_partition/icaps26/blocks/domain.pddl'
-tasks_dir = 'cost_partition/icaps26/blocks/training'
-validation_dir = 'cost_partition/icaps26/blocks/validation'
+tasks_dir = 'cost_partition/icaps26/blocks/instances'
