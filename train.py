@@ -134,6 +134,7 @@ def train(opts):
         schema_predictor = get_cost_partition_predictor(opts.optimisation, feature_generator.get_n_features(),
                                                         domain.name, "all", feature_generator.get_iterations())
         train_dataset = get_all_schemas_data(dataset, feature_generator)
+
         validation_dataset = get_all_schemas_data(validation_dataset, feature_generator)
         
         # for i in range(len(schema_predictors)):
